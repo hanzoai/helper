@@ -5,6 +5,7 @@
  * the login flow, key management, and coding-tool configuration.
  */
 
+export * from './lib/brand';
 export * from './lib/endpoints';
 export * from './lib/config';
 export * from './lib/iam';
