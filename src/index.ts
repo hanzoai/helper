@@ -11,5 +11,6 @@ export * from './lib/config';
 export * from './lib/iam';
 export * from './lib/apikeys';
 export * from './lib/models';
+export * from './lib/shell-env';
 export * from './targets';
 export { version } from './lib/version';

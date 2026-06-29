@@ -7,13 +7,13 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { getConfig } from '../lib/config';
 import { endpoints } from '../lib/endpoints';
-import { DEFAULT_MODEL } from '../lib/models';
+import { DEFAULT_MODEL, resolveModel } from '../lib/models';
 import { TARGETS, getTarget, codexEnvHint } from '../targets';
 
 export const useCmd = new Command('use')
   .description('Point a coding tool at Hanzo using your saved API key')
   .argument('[tool]', 'Tool id (claude-code, codex). Omit to apply to all installed tools.')
-  .option('--model <id>', 'Default model to use', DEFAULT_MODEL)
+  .option('--model <id|tier>', 'Model id or tier (default, flash, pro, ultra, max)', DEFAULT_MODEL)
   .action(async (tool: string | undefined, opts: { model: string }) => {
     const { apiKey } = await getConfig();
     if (!apiKey) {
@@ -27,10 +27,11 @@ export const useCmd = new Command('use')
       return;
     }
 
-    const creds = { apiKey, apiBase: endpoints.api, model: opts.model };
+    const model = resolveModel(opts.model);
+    const creds = { apiKey, apiBase: endpoints.api, model };
     for (const t of targets) {
       t.configure(creds);
-      console.log(chalk.green(`✓ ${t.displayName} → Hanzo Cloud (${opts.model})`));
+      console.log(chalk.green(`✓ ${t.displayName} → Hanzo Cloud (${model})`));
       if (t.id === 'codex') console.log(chalk.dim(`  ${codexEnvHint()}`));
     }
   });

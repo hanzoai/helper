@@ -15,7 +15,8 @@ import { requestDeviceCode, pollForToken, fetchUser, DeviceAuthError } from '../
 import { ensureApiKey } from '../lib/apikeys';
 import { setConfig } from '../lib/config';
 import { endpoints } from '../lib/endpoints';
-import { FEATURED_MODELS, DEFAULT_MODEL } from '../lib/models';
+import { FEATURED_MODELS, DEFAULT_MODEL, resolveModel } from '../lib/models';
+import { installShellEnv, detectShell } from '../lib/shell-env';
 import { TARGETS, getTarget, codexEnvHint } from '../targets';
 
 export interface LoginOptions {
@@ -26,13 +27,16 @@ export interface LoginOptions {
   all?: boolean;
   /** Paste an existing hk- key instead of doing a browser device login. */
   key?: string;
+  /** Where to write the Hanzo provider: 'shell' (env vars) or 'tools' (per-tool config). */
+  mode?: 'shell' | 'tools';
 }
 
 export const loginCmd = new Command('login')
   .description('Sign in to Hanzo and configure your coding tools')
   .option('--tool <id>', 'Configure a specific tool (claude-code, codex)')
-  .option('--model <id>', 'Default model to use')
+  .option('--model <id|tier>', 'Model id or tier (default, flash, pro, ultra, max)')
   .option('--key <hk-...>', 'Use an existing Hanzo API key instead of browser login')
+  .option('--mode <mode>', 'Install target: shell (env vars) or tools (per-tool config)')
   .option('--no-browser', 'Do not open the browser automatically')
   .option('--all', 'Configure every installed tool without prompting')
   .action(async (opts: LoginOptions) => runLogin(opts));
@@ -45,8 +49,19 @@ export async function runLogin(opts: LoginOptions): Promise<void> {
   try {
     const apiKey = await acquireApiKey(opts);
 
-    const model = opts.model ?? (await pickModel());
+    const model = opts.model ? resolveModel(opts.model) : await pickModel();
+    const creds = { apiKey, apiBase: endpoints.api, model };
 
+    const mode = await resolveMode(opts);
+    if (mode === 'shell') {
+      const target = installShellEnv(creds);
+      console.log(chalk.green(`  ✓ Wrote Hanzo env vars to ${target.rcFile} (${model})`));
+      console.log(chalk.dim(`    Open a new terminal, or: source ${target.rcFile}`));
+      console.log(chalk.dim(`    Every Anthropic-compatible tool now uses Hanzo (${endpoints.api}).`));
+      return;
+    }
+
+    // Per-tool settings mode.
     const targets = await resolveTargets(opts);
     if (targets.length === 0) {
       console.log(chalk.yellow('\nNo coding tools selected. Nothing configured.'));
@@ -54,7 +69,6 @@ export async function runLogin(opts: LoginOptions): Promise<void> {
       return;
     }
 
-    const creds = { apiKey, apiBase: endpoints.api, model };
     for (const t of targets) {
       t.configure(creds);
       console.log(chalk.green(`  ✓ ${t.displayName} → Hanzo Cloud (${model})`));
@@ -64,6 +78,36 @@ export async function runLogin(opts: LoginOptions): Promise<void> {
   } catch (err) {
     fail(err);
   }
+}
+
+/**
+ * Decide whether to install into the shell environment (affects every
+ * Anthropic-compatible tool) or into individual tool config files (additive,
+ * scoped per tool). Honors --mode; otherwise asks.
+ */
+async function resolveMode(opts: LoginOptions): Promise<'shell' | 'tools'> {
+  if (opts.mode) return opts.mode;
+  if (opts.tool || opts.all) return 'tools'; // explicit tool selection implies per-tool
+
+  const sh = detectShell();
+  const { mode } = await inquirer.prompt<{ mode: 'shell' | 'tools' }>([
+    {
+      type: 'list',
+      name: 'mode',
+      message: 'How should Hanzo be installed?',
+      choices: [
+        {
+          name: `Into specific coding tools (Claude Code, Codex) — additive, recommended`,
+          value: 'tools',
+        },
+        {
+          name: `Into your shell env (${sh.shell}) — Hanzo becomes the default for every Anthropic tool`,
+          value: 'shell',
+        },
+      ],
+    },
+  ]);
+  return mode;
 }
 
 /**
