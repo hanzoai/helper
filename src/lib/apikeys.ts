@@ -6,14 +6,14 @@
  * both authorized by the device-login JWT as the *self* caller
  * (iam resolveTargetUserForKeys: admin OR self OR allowlisted app):
  *
- *   read   GET  api.hanzo.ai/v1/get-account          → claims.accessKey
- *   mint   POST hanzo.id/v1/iam/mint-user-keys        → { accessKey }   (self)
+ *   read   GET  {api}/v1/get-account        → claims.accessKey
+ *   mint   POST {iam}/mint-user-keys        → { accessKey }   (self)
  *
  * `ensureApiKey` reads the existing key and only mints when the account has none
  * — minting *rotates*, so we never clobber a key the user is already using.
  */
 
-import { endpoints } from './endpoints';
+import { endpoints, IAM_PATHS } from './endpoints';
 
 export class ApiKeyError extends Error {}
 
@@ -37,7 +37,7 @@ export async function readApiKey(accessToken: string): Promise<string | undefine
  * full key, shown once.
  */
 export async function mintApiKey(accessToken: string): Promise<string> {
-  const res = await fetch(`${endpoints.iam}/v1/iam/mint-user-keys`, {
+  const res = await fetch(`${endpoints.iam}${IAM_PATHS.mintKeys}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
   });
@@ -54,7 +54,7 @@ export async function mintApiKey(accessToken: string): Promise<string> {
 
 /** Revoke the signed-in user's `hk-` key (rotates to empty; takes effect ~5m). */
 export async function revokeApiKey(accessToken: string): Promise<void> {
-  const res = await fetch(`${endpoints.iam}/v1/iam/revoke-user-keys`, {
+  const res = await fetch(`${endpoints.iam}${IAM_PATHS.revokeKeys}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
   });
