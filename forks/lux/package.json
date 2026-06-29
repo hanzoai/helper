@@ -1,0 +1,27 @@
+{
+  "name": "@luxfi/helper",
+  "version": "1.0.0",
+  "description": "Lux CLI helper — sign in to Lux and use its AI models in Claude Code, Codex, and more",
+  "type": "module",
+  "bin": {
+    "lux": "./bin/lux.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": ["lux", "cli", "ai", "cloud", "mcp"],
+  "author": "Lux Industries",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luxfi/helper"
+  },
+  "homepage": "https://lux.network",
+  "dependencies": {
+    "@hanzo/helper": "^1.0.0"
+  }
+}

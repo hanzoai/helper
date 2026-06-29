@@ -12,13 +12,14 @@ import { statusCmd, runStatus } from './commands/status';
 import { modelsCmd } from './commands/models';
 import { doctorCmd } from './commands/doctor';
 import { getConfig } from './lib/config';
+import { brand } from './lib/brand';
 import { version } from './lib/version';
 
 const program = new Command();
 
 program
-  .name('hanzo')
-  .description('Sign in to Hanzo and use its AI models in Claude Code, Codex, and more')
+  .name(brand.bin)
+  .description(`Sign in to ${brand.name} and use its AI models in Claude Code, Codex, and more`)
   .version(version);
 
 program.addCommand(loginCmd);

@@ -1,0 +1,27 @@
+{
+  "name": "@zenlm/helper",
+  "version": "1.0.0",
+  "description": "Zen CLI helper — sign in to Zen and use its AI models in Claude Code, Codex, and more",
+  "type": "module",
+  "bin": {
+    "zen": "./bin/zen.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": ["zen", "zenlm", "cli", "ai", "cloud", "mcp"],
+  "author": "Zen LM",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zenlm/helper"
+  },
+  "homepage": "https://zenlm.org",
+  "dependencies": {
+    "@hanzo/helper": "^1.0.0"
+  }
+}
