@@ -6,7 +6,7 @@
  * server, no client secret — exactly what a coding-tool installer needs.
  */
 
-import { endpoints, OAUTH_PATHS, CLIENT_ID, DEVICE_GRANT_TYPE } from './endpoints';
+import { endpoints, IAM_PATHS, CLIENT_ID, DEVICE_GRANT_TYPE } from './endpoints';
 import type { UserInfo } from './config';
 
 export interface DeviceCode {
@@ -21,20 +21,28 @@ export interface DeviceCode {
 export class DeviceAuthError extends Error {}
 
 /**
- * IAM reads device-grant parameters from the query string / form body (not
- * JSON) — see iam controllers/token.go GetOAuthToken, which skips JSON parsing
- * for the device_code grant. So every IAM call here is form-encoded.
+ * IAM reads device-grant parameters via Beego `Query()` — from the query string
+ * or form body, never JSON (iam controllers/token.go GetOAuthToken skips JSON
+ * for the device_code grant). We match the `dev` CLI exactly: device
+ * authorization carries its params in the query string, token exchange in the
+ * form body.
  */
 function form(params: Record<string, string>): string {
   return new URLSearchParams(params).toString();
 }
 
-/** Step 1: ask Hanzo ID to start a device-authorization request (RFC 8628). */
+/** Step 1: ask IAM to start a device-authorization request (RFC 8628). */
 export async function requestDeviceCode(): Promise<DeviceCode> {
-  const res = await fetch(`${endpoints.iam}${OAUTH_PATHS.deviceAuthorization}`, {
+  const url = new URL(`${endpoints.iam}${IAM_PATHS.deviceAuthorization}`);
+  url.search = form({
+    client_id: CLIENT_ID,
+    scope: 'openid profile email',
+    response_type: 'device_code',
+  });
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form({ client_id: CLIENT_ID, scope: 'openid profile email' }),
   });
 
   if (!res.ok) {
@@ -82,7 +90,7 @@ export async function pollForToken(
     await sleep(interval * 1000);
     onTick?.(Math.max(0, Math.round((deadline - Date.now()) / 1000)));
 
-    const res = await fetch(`${endpoints.iam}${OAUTH_PATHS.token}`, {
+    const res = await fetch(`${endpoints.iam}${IAM_PATHS.token}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form({

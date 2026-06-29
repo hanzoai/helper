@@ -18,68 +18,129 @@ import { endpoints } from '../lib/endpoints';
 import { FEATURED_MODELS, DEFAULT_MODEL } from '../lib/models';
 import { TARGETS, getTarget, codexEnvHint } from '../targets';
 
+export interface LoginOptions {
+  tool?: string;
+  /** Default model; when undefined the user is prompted. */
+  model?: string;
+  browser: boolean;
+  all?: boolean;
+  /** Paste an existing hk- key instead of doing a browser device login. */
+  key?: string;
+}
+
 export const loginCmd = new Command('login')
   .description('Sign in to Hanzo and configure your coding tools')
   .option('--tool <id>', 'Configure a specific tool (claude-code, codex)')
-  .option('--model <id>', 'Default model to use', DEFAULT_MODEL)
+  .option('--model <id>', 'Default model to use')
+  .option('--key <hk-...>', 'Use an existing Hanzo API key instead of browser login')
   .option('--no-browser', 'Do not open the browser automatically')
   .option('--all', 'Configure every installed tool without prompting')
-  .action(async (opts: { tool?: string; model: string; browser: boolean; all?: boolean }) => {
-    try {
-      // 1. Device login ----------------------------------------------------
-      const dc = await requestDeviceCode();
+  .action(async (opts: LoginOptions) => runLogin(opts));
 
-      console.log();
-      console.log(chalk.bold('  Sign in to Hanzo'));
-      console.log(`  Visit       ${chalk.cyan(dc.verificationUri)}`);
-      console.log(`  Enter code  ${chalk.bold.yellow(dc.userCode)}`);
-      console.log();
+/**
+ * The full login + setup flow. Exported so bare `hanzo` / `npx @hanzo/helper`
+ * can run it directly when you're signed out.
+ */
+export async function runLogin(opts: LoginOptions): Promise<void> {
+  try {
+    const apiKey = await acquireApiKey(opts);
 
-      if (opts.browser) openBrowser(dc.verificationUriComplete);
+    const model = opts.model ?? (await pickModel());
 
-      const spinner = ora('Waiting for you to approve in the browser…').start();
-      const { accessToken } = await pollForToken(dc, (secs) => {
-        spinner.text = `Waiting for approval… (${secs}s left)`;
-      });
-      spinner.succeed('Signed in');
-
-      const user = await fetchUser(accessToken).catch(() => undefined);
-      if (user) console.log(chalk.dim(`  ${user.name}${user.email ? ` <${user.email}>` : ''}`));
-
-      // 2. API key ---------------------------------------------------------
-      const keySpinner = ora('Provisioning API key…').start();
-      const apiKey = await ensureApiKey(accessToken);
-      keySpinner.succeed('API key ready');
-
-      await setConfig((c) => ({
-        ...c,
-        accessToken,
-        apiKey,
-        ...(user ? { user } : {}),
-      }));
-
-      // 3. Model -----------------------------------------------------------
-      const model = opts.model ?? (await pickModel());
-
-      // 4. Configure tools -------------------------------------------------
-      const targets = await resolveTargets(opts);
-      if (targets.length === 0) {
-        console.log(chalk.yellow('\nNo coding tools selected. Nothing configured.'));
-        console.log(chalk.dim('Your API key is saved; run `hanzo use <tool>` later.'));
-        return;
-      }
-
-      const creds = { apiKey, apiBase: endpoints.api, model };
-      for (const t of targets) {
-        t.configure(creds);
-        console.log(chalk.green(`  ✓ ${t.displayName} → Hanzo Cloud (${model})`));
-      }
-
-      printNextSteps(targets.map((t) => t.id), model);
-    } catch (err) {
-      fail(err);
+    const targets = await resolveTargets(opts);
+    if (targets.length === 0) {
+      console.log(chalk.yellow('\nNo coding tools selected. Nothing configured.'));
+      console.log(chalk.dim('Your API key is saved; run `hanzo use <tool>` later.'));
+      return;
     }
+
+    const creds = { apiKey, apiBase: endpoints.api, model };
+    for (const t of targets) {
+      t.configure(creds);
+      console.log(chalk.green(`  ✓ ${t.displayName} → Hanzo Cloud (${model})`));
+    }
+
+    printNextSteps(targets.map((t) => t.id), model);
+  } catch (err) {
+    fail(err);
+  }
+}
+
+/**
+ * Get a usable hk- key by whichever route fits: an explicit --key, a pasted key,
+ * or a browser device login that mints one. The result is persisted either way.
+ */
+async function acquireApiKey(opts: LoginOptions): Promise<string> {
+  // Non-interactive: a key was supplied on the command line.
+  if (opts.key) return saveKey(opts.key.trim());
+
+  // Interactive: offer browser login (recommended) or pasting an existing key.
+  const { method } = await inquirer.prompt<{ method: 'browser' | 'paste' }>([
+    {
+      type: 'list',
+      name: 'method',
+      message: 'How do you want to connect to Hanzo?',
+      choices: [
+        { name: 'Sign in with a browser (recommended)', value: 'browser' },
+        { name: 'Paste an existing Hanzo API key', value: 'paste' },
+      ],
+    },
+  ]);
+
+  if (method === 'paste') {
+    const { key } = await inquirer.prompt<{ key: string }>([
+      {
+        type: 'password',
+        name: 'key',
+        message: 'Hanzo API key (hk-…):',
+        mask: '*',
+        validate: (v: string) => v.trim().startsWith('hk-') || 'Keys start with "hk-".',
+      },
+    ]);
+    return saveKey(key.trim());
+  }
+
+  return browserLogin(opts);
+}
+
+/** Device-login in the browser, mint/reuse the key, persist session + key. */
+async function browserLogin(opts: LoginOptions): Promise<string> {
+  const dc = await requestDeviceCode();
+
+  console.log();
+  console.log(chalk.bold('  Sign in to Hanzo'));
+  console.log(`  Visit       ${chalk.cyan(dc.verificationUri)}`);
+  console.log(`  Enter code  ${chalk.bold.yellow(dc.userCode)}`);
+  console.log();
+
+  if (opts.browser) openBrowser(dc.verificationUriComplete);
+
+  const spinner = ora('Waiting for you to approve in the browser…').start();
+  const { accessToken } = await pollForToken(dc, (secs) => {
+    spinner.text = `Waiting for approval… (${secs}s left)`;
   });
+  spinner.succeed('Signed in');
+
+  const user = await fetchUser(accessToken).catch(() => undefined);
+  if (user) console.log(chalk.dim(`  ${user.name}${user.email ? ` <${user.email}>` : ''}`));
+
+  const keySpinner = ora('Provisioning API key…').start();
+  const apiKey = await ensureApiKey(accessToken);
+  keySpinner.succeed('API key ready');
+
+  await setConfig((c) => ({ ...c, accessToken, apiKey, ...(user ? { user } : {}) }));
+  return apiKey;
+}
+
+/** Persist a pasted/supplied key (no OAuth token, so key-management is limited). */
+async function saveKey(key: string): Promise<string> {
+  if (!key.startsWith('hk-')) {
+    throw new Error('That does not look like a Hanzo API key (expected an "hk-" prefix).');
+  }
+  await setConfig((c) => ({ ...c, apiKey: key }));
+  console.log(chalk.green('  ✓ API key saved'));
+  return key;
+}
 
 async function pickModel(): Promise<string> {
   const { model } = await inquirer.prompt<{ model: string }>([
