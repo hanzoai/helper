@@ -6,9 +6,10 @@
 
 import type { CodingTarget } from './types';
 import { claudeCode } from './claude-code';
+import { claudeDesktop } from './claude-desktop';
 import { codex } from './codex';
 
-export const TARGETS: readonly CodingTarget[] = [claudeCode, codex];
+export const TARGETS: readonly CodingTarget[] = [claudeCode, claudeDesktop, codex];
 
 export function getTarget(id: string): CodingTarget | undefined {
   return TARGETS.find((t) => t.id === id);
