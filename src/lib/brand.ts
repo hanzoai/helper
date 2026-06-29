@@ -54,7 +54,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     id: 'zen',
     name: 'Zen',
     bin: 'zen',
-    iam: 'https://zen.id/v1/iam',
+    iam: 'https://id.zenlm.org/v1/iam',
     api: 'https://api.zenlm.org',
     clientId: 'zen-app',
   },

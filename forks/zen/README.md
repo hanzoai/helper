@@ -7,7 +7,7 @@ npx @zenlm/helper
 ```
 
 The Zen-branded build of [`@hanzo/helper`](https://github.com/hanzoai/helper) —
-identical engine, Zen defaults (`zen.id`, `api.zenlm.org`, `zen-app`). One
+identical engine, Zen defaults (`id.zenlm.org`, `api.zenlm.org`, `zen-app`). One
 command does browser device login, mints your Zen API key, and points your
 coding tools at the Zen AI cloud.
 
