@@ -1,0 +1,72 @@
+{
+  "name": "@hanzo/helper",
+  "version": "1.0.0",
+  "description": "Hanzo CLI helper for API access, cloud services, MCP, and plugins",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "hanzo": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [
+    "hanzo",
+    "cli",
+    "mcp",
+    "ai",
+    "cloud",
+    "platform"
+  ],
+  "author": "Hanzo AI",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hanzoai/helper"
+  },
+  "bugs": {
+    "url": "https://github.com/hanzoai/helper/issues"
+  },
+  "homepage": "https://hanzo.ai",
+  "packageManager": "pnpm@10.15.0",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0",
+    "inquirer": "^12.0.0",
+    "ora": "^8.2.0",
+    "smol-toml": "^1.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/inquirer": "^9.0.8",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "globals": "^16.0.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.20.0"
+  }
+}
