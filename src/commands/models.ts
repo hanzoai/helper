@@ -6,12 +6,21 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { getConfig } from '../lib/config';
-import { fetchModels, FEATURED_MODELS } from '../lib/models';
+import { fetchModels, FEATURED_MODELS, TIERS } from '../lib/models';
 
 export const modelsCmd = new Command('models')
   .description('List models available through Hanzo Cloud')
   .option('--featured', 'Show only the curated featured set')
-  .action(async (opts: { featured?: boolean }) => {
+  .option('--tiers', 'Show the friendly capability tiers and what they map to')
+  .action(async (opts: { featured?: boolean; tiers?: boolean }) => {
+    if (opts.tiers) {
+      for (const [tier, id] of Object.entries(TIERS)) {
+        console.log(`  ${chalk.bold(tier.padEnd(10))} → ${id}`);
+      }
+      console.log(chalk.dim('\n  Use a tier anywhere a model is asked for: `hanzo use --model pro`'));
+      return;
+    }
+
     if (opts.featured) {
       for (const m of FEATURED_MODELS) console.log(`  ${chalk.bold(m.id.padEnd(20))} ${chalk.dim(m.label)}`);
       return;
