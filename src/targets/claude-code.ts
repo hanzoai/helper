@@ -1,13 +1,13 @@
 /**
  * Claude Code target.
  *
- * Claude Code speaks the Anthropic protocol and reads its provider from the
- * `env` block of ~/.claude/settings.json:
- *   ANTHROPIC_AUTH_TOKEN  the bearer token sent on every request
- *   ANTHROPIC_BASE_URL    where /v1/messages lives
- * Hanzo serves /v1/messages at the API root, so the base URL is just the API
- * origin. We also set hasCompletedOnboarding in ~/.claude.json so a fresh
- * install doesn't trap the user in the first-run wizard.
+ * Uses the `providers.hanzo` block in ~/.claude/settings.json — an additive,
+ * non-destructive entry that lets users switch to Hanzo models per-session
+ * (`/model hanzo/deepseek-v4-pro`) without replacing the default Anthropic
+ * connection. The env block is NOT touched so the current session stays intact.
+ *
+ * Config paths are identical on all platforms (home-relative). Claude Code
+ * also looks at CLAUDE_SETTINGS_PATH env override.
  */
 
 import path from 'node:path';
@@ -19,19 +19,27 @@ import { type CodingTarget, type HanzoCredentials, type TargetStatus, maskKey } 
 const SETTINGS = path.join(os.homedir(), '.claude', 'settings.json');
 const CLAUDE_JSON = path.join(os.homedir(), '.claude.json');
 
-// Keys we own in settings.env — added on configure, removed on unconfigure.
-const MANAGED_ENV = [
-  'ANTHROPIC_AUTH_TOKEN',
-  'ANTHROPIC_BASE_URL',
-  'ANTHROPIC_MODEL',
-  'API_TIMEOUT_MS',
-  'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC',
-] as const;
-
 interface ClaudeSettings {
-  env?: Record<string, string | number>;
+  providers?: Record<string, {
+    apiKey?: string;
+    baseURL?: string;
+    name?: string;
+    models?: string[];
+  }>;
   [k: string]: unknown;
 }
+
+const HANZO_MODELS = [
+  'zen5-ultra', 'zen5-max', 'zen5-pro', 'zen5', 'zen5-mini',
+  'zen4-ultra', 'zen4-max', 'zen4-pro', 'zen4', 'zen4-coder-pro', 'zen4-coder', 'zen4-thinking',
+  'glm-5.2', 'glm-5.1', 'glm-5',
+  'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-v3.2', 'deepseek-reasoner',
+  'qwen3.5-397b', 'qwen3-coder',
+  'kimi-k2.6',
+  'llama-4-maverick',
+  'nemotron-3-ultra-550b',
+  'minimax-m2.5',
+];
 
 export const claudeCode: CodingTarget = {
   id: 'claude-code',
@@ -41,16 +49,14 @@ export const claudeCode: CodingTarget = {
 
   configure(creds: HanzoCredentials): void {
     const settings = readJson<ClaudeSettings>(SETTINGS);
-    const env = { ...settings.env };
-    delete env['ANTHROPIC_API_KEY']; // avoid two competing auth vars
-
-    settings.env = {
-      ...env,
-      ANTHROPIC_AUTH_TOKEN: creds.apiKey,
-      ANTHROPIC_BASE_URL: creds.apiBase,
-      ANTHROPIC_MODEL: creds.model,
-      API_TIMEOUT_MS: '3000000',
-      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1,
+    settings.providers = {
+      ...settings.providers,
+      hanzo: {
+        name: 'Hanzo AI',
+        apiKey: creds.apiKey,
+        baseURL: creds.apiBase + '/v1',
+        models: HANZO_MODELS,
+      },
     };
     writeJson(SETTINGS, settings);
 
@@ -62,18 +68,19 @@ export const claudeCode: CodingTarget = {
 
   unconfigure(): void {
     const settings = readJson<ClaudeSettings>(SETTINGS);
-    if (!settings.env) return;
-    for (const key of MANAGED_ENV) delete settings.env[key];
-    if (Object.keys(settings.env).length === 0) delete settings.env;
+    if (settings.providers?.hanzo) {
+      delete settings.providers.hanzo;
+      if (Object.keys(settings.providers).length === 0) delete settings.providers;
+    }
     writeJson(SETTINGS, settings);
   },
 
   status(): TargetStatus {
-    const token = readJson<ClaudeSettings>(SETTINGS).env?.['ANTHROPIC_AUTH_TOKEN'];
+    const key = readJson<ClaudeSettings>(SETTINGS).providers?.hanzo?.apiKey;
     return {
       installed: isInstalled(this.bin),
-      configured: typeof token === 'string' && token.length > 0,
-      ...(typeof token === 'string' ? { apiKeyMasked: maskKey(token) } : {}),
+      configured: typeof key === 'string' && key.startsWith('hk-'),
+      ...(typeof key === 'string' ? { apiKeyMasked: maskKey(key) } : {}),
     };
   },
 };
