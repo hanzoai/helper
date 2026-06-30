@@ -22,6 +22,6 @@
   },
   "homepage": "https://lux.network",
   "dependencies": {
-    "@hanzo/helper": "^1.0.0"
+    "@hanzo/helper": "^1.0.1"
   }
 }

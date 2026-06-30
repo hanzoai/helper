@@ -1,6 +1,6 @@
 {
   "name": "@hanzo/helper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Hanzo CLI helper for API access, cloud services, MCP, and plugins",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,7 +11,8 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./cli": "./dist/cli.js"
   },
   "files": [
     "dist",

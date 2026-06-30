@@ -7,4 +7,4 @@
  * HANZO_IAM_URL / HANZO_API_URL / HANZO_CLIENT_ID still overrides.
  */
 process.env.HANZO_BRAND ??= 'zen';
-await import('@hanzo/helper/dist/cli.js');
+await import('@hanzo/helper/cli');
