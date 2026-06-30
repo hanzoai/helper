@@ -21,6 +21,9 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/cli.ts",
