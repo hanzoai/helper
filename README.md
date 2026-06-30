@@ -42,31 +42,56 @@ codex           # Codex → Hanzo Cloud
 | `hanzo auth rotate` | Mint a fresh API key (old one stops working) |
 | `hanzo auth revoke` | Revoke your API key |
 | `hanzo auth logout` | Clear local credentials |
-| `hanzo install [pkgs…]` | Install Hanzo tooling (`dev`, `mcp`, `extension`) |
+| `hanzo models --tiers` | Show the smart tiers (effort words → cloud aliases) |
+| `hanzo install [parts…]` | Set up the ecosystem (dev, mcp, node, apps, …) |
 | `hanzo doctor` | Diagnose connectivity and tool configuration |
+
+### Smart tiers
+
+The catalog is read live from `api.hanzo.ai/v1/models` — nothing is hardcoded.
+Beyond concrete ids (`glm-5.2`, `deepseek-v4-pro`, …) you can ask for an
+**effort word** and let the cloud pick the model:
+
+| Word | Routes to | |
+| --- | --- | --- |
+| `auto` | `zen-auto` | the cloud chooses (recommended default) |
+| `fast` | `zen-normal` | quick, everyday |
+| `high` | `zen-pro` | stronger reasoning & coding |
+| `max` | `zen-max` | top tier (needs credits) |
+| `code` | `zen-code` | coding-specialised |
+| `agent`| `zen-agent` | agentic |
+
+```bash
+hanzo use claude-code --model high      # or auto / fast / max / glm-5.2 …
+hanzo models                            # full live catalog for your key
+```
 
 ### Supported coding tools
 
-- **Claude Code** — sets `ANTHROPIC_AUTH_TOKEN` + `ANTHROPIC_BASE_URL` in
-  `~/.claude/settings.json`.
+- **Claude Code** — adds a `providers.hanzo` block to `~/.claude/settings.json`
+  (additive; switch per-session with `/model hanzo/<id>`). Choose shell-env mode
+  at login to make Hanzo the default for every Anthropic-compatible tool instead.
 - **Codex** — adds a `[model_providers.hanzo]` provider to
   `~/.codex/config.toml` (key in `~/.hanzo/env` as `HANZO_API_KEY`).
 
-Configure one explicitly:
+### The whole ecosystem
 
 ```bash
-hanzo login --tool codex --model glm-5.2
-hanzo use claude-code --model claude-opus-4-8
+hanzo install              # interactive checklist (core tools pre-checked)
+hanzo install dev mcp      # CLI agent + MCP server (npm)
+hanzo install list         # everything available
 ```
 
-### Hanzo's own tools
-
-```bash
-hanzo install dev          # @hanzo/dev — CLI coding agent
-hanzo install mcp          # @hanzo/mcp — tools, browser, cloud
-hanzo install extension    # @hanzo/extension — browser extension
-hanzo install              # dev + mcp
-```
+| Part | Kind | |
+| --- | --- | --- |
+| `dev` | npm | `@hanzo/dev` — CLI coding agent (`code`) |
+| `mcp` | npm | `@hanzo/mcp` — MCP server (tools, browser, cloud) |
+| `node` | guide | local inference node (bundles the engine) |
+| `desktop` | guide | desktop app + the Enso browser |
+| `extension` | guide | browser extension (Chrome / Firefox / Safari) |
+| `ide` | guide | VS Code & JetBrains extensions |
+| `slack` | guide | the Slack app |
+| `github` | guide | the GitHub app |
 
 ## How it works
 

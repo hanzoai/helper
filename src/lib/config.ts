@@ -31,11 +31,16 @@ let cached: HanzoConfig | null = null;
 
 export async function getConfig(): Promise<HanzoConfig> {
   if (cached) return cached;
+  let file: HanzoConfig = {};
   try {
-    cached = JSON.parse(await fs.readFile(CONFIG_FILE, 'utf-8')) as HanzoConfig;
+    file = JSON.parse(await fs.readFile(CONFIG_FILE, 'utf-8')) as HanzoConfig;
   } catch {
-    cached = {};
+    /* no config file yet */
   }
+  // HANZO_API_KEY (the same var Codex reads) overrides the stored key, so the
+  // helper works headless — in CI or a fresh shell — with no written config.
+  const envKey = process.env.HANZO_API_KEY?.trim();
+  cached = envKey ? { ...file, apiKey: envKey } : file;
   return cached;
 }
 

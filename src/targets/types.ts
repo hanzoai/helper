@@ -8,8 +8,12 @@ export interface HanzoCredentials {
   apiKey: string;
   /** Cloud API base, e.g. https://api.hanzo.ai (no trailing slash). */
   apiBase: string;
-  /** Default model id to select, e.g. claude-opus-4-8 or glm-5.2. */
+  /** Default model id to select, e.g. zen-auto or glm-5.2. */
   model: string;
+  /** Live model ids from the cloud catalog. Targets that list selectable models
+   *  (e.g. Claude Code) write these; the command layer fetches them once so
+   *  configuration stays in step with the catalog. Omitted ⇒ just the default. */
+  models?: string[];
 }
 
 export interface TargetStatus {

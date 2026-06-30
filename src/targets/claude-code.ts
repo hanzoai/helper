@@ -29,20 +29,6 @@ interface ClaudeSettings {
   [k: string]: unknown;
 }
 
-const HANZO_MODELS = [
-  'zen5-ultra', 'zen5-max', 'zen5-pro', 'zen5', 'zen5-coder', 'zen5-flash', 'zen5-mini',
-  'zen4-ultra', 'zen4-max', 'zen4-pro', 'zen4', 'zen4-coder-pro', 'zen4-coder', 'zen4-thinking', 'zen4-mini',
-  'glm-5.2', 'glm-5.1', 'glm-5',
-  'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-v3.2', 'deepseek-reasoner',
-  'kimi-k2.6', 'kimi-k2.5', 'kimi-k2',
-  'qwen3.5-397b', 'qwen3-coder', 'qwen3-coder-flash',
-  'llama-4-maverick',
-  'minimax-m2.5',
-  'nemotron-3-ultra-550b', 'nemotron-3-super-120b', 'nemotron-3-nano',
-  'gemma-4-31b', 'gemma-3-31b',
-  'mimo-v2.5-pro', 'mimo-v2.5',
-];
-
 export const claudeCode: CodingTarget = {
   id: 'claude-code',
   displayName: 'Claude Code',
@@ -57,7 +43,8 @@ export const claudeCode: CodingTarget = {
         name: 'Hanzo AI',
         apiKey: creds.apiKey,
         baseURL: creds.apiBase + '/v1',
-        models: HANZO_MODELS,
+        // Live catalog from the cloud; fall back to just the default if offline.
+        models: creds.models && creds.models.length > 0 ? creds.models : [creds.model],
       },
     };
     writeJson(SETTINGS, settings);

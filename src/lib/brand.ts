@@ -23,6 +23,8 @@ export interface Brand {
   api: string;
   /** OAuth client id seeded in IAM with the device_code grant. */
   clientId: string;
+  /** Public web root — ecosystem install/download pages hang off it. */
+  site: string;
 }
 
 const BRANDS: Record<Brand['id'], Brand> = {
@@ -33,6 +35,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     iam: 'https://hanzo.id/v1/iam',
     api: 'https://api.hanzo.ai',
     clientId: 'hanzo-app',
+    site: 'https://hanzo.ai',
   },
   lux: {
     id: 'lux',
@@ -41,6 +44,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     iam: 'https://lux.id/v1/iam',
     api: 'https://api.lux.network',
     clientId: 'lux-app',
+    site: 'https://lux.network',
   },
   zoo: {
     id: 'zoo',
@@ -49,6 +53,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     iam: 'https://zoolabs.id/v1/iam',
     api: 'https://api.zoo.ngo',
     clientId: 'zoo-app',
+    site: 'https://zoo.ngo',
   },
   zen: {
     id: 'zen',
@@ -57,6 +62,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     iam: 'https://id.zenlm.org/v1/iam',
     api: 'https://api.zenlm.org',
     clientId: 'zen-app',
+    site: 'https://zenlm.org',
   },
 };
 
