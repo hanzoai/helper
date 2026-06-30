@@ -10,13 +10,20 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
-import { spawn } from 'node:child_process';
 import { requestDeviceCode, pollForToken, fetchUser, DeviceAuthError } from '../lib/iam';
 import { ensureApiKey } from '../lib/apikeys';
 import { setConfig } from '../lib/config';
 import { endpoints } from '../lib/endpoints';
-import { FEATURED_MODELS, DEFAULT_MODEL, resolveModel } from '../lib/models';
+import {
+  DEFAULT_MODEL,
+  resolveModel,
+  fetchCatalog,
+  aliasesFrom,
+  type CloudModel,
+} from '../lib/models';
 import { installShellEnv, detectShell } from '../lib/shell-env';
+import { openUrl } from '../lib/open';
+import { installComponents, pickComponents } from '../lib/ecosystem';
 import { TARGETS, getTarget, codexEnvHint } from '../targets';
 
 export interface LoginOptions {
@@ -34,7 +41,7 @@ export interface LoginOptions {
 export const loginCmd = new Command('login')
   .description('Sign in to Hanzo and configure your coding tools')
   .option('--tool <id>', 'Configure a specific tool (claude-code, codex)')
-  .option('--model <id|tier>', 'Model id or tier (default, flash, pro, ultra, max)')
+  .option('--model <id|tier>', 'Model id or effort (auto, fast, high, max, code, agent)')
   .option('--key <hk-...>', 'Use an existing Hanzo API key instead of browser login')
   .option('--mode <mode>', 'Install target: shell (env vars) or tools (per-tool config)')
   .option('--no-browser', 'Do not open the browser automatically')
@@ -49,8 +56,12 @@ export async function runLogin(opts: LoginOptions): Promise<void> {
   try {
     const apiKey = await acquireApiKey(opts);
 
-    const model = opts.model ? resolveModel(opts.model) : await pickModel();
-    const creds = { apiKey, apiBase: endpoints.api, model };
+    // One live catalog read drives both the model picker and the per-tool model
+    // list — the cloud is the source of truth, so nothing here is hardcoded.
+    const catalog = await fetchCatalog(apiKey).catch(() => [] as CloudModel[]);
+    const model = opts.model ? resolveModel(opts.model) : await pickModel(catalog);
+    const models = catalog.map((m) => m.id);
+    const creds = { apiKey, apiBase: endpoints.api, model, ...(models.length ? { models } : {}) };
 
     const mode = await resolveMode(opts);
     if (mode === 'shell') {
@@ -58,6 +69,7 @@ export async function runLogin(opts: LoginOptions): Promise<void> {
       console.log(chalk.green(`  ✓ Wrote Hanzo env vars to ${target.rcFile} (${model})`));
       console.log(chalk.dim(`    Open a new terminal, or: source ${target.rcFile}`));
       console.log(chalk.dim(`    Every Anthropic-compatible tool now uses Hanzo (${endpoints.api}).`));
+      await maybeOfferEcosystem(opts);
       return;
     }
 
@@ -75,6 +87,7 @@ export async function runLogin(opts: LoginOptions): Promise<void> {
     }
 
     printNextSteps(targets.map((t) => t.id), model);
+    await maybeOfferEcosystem(opts);
   } catch (err) {
     fail(err);
   }
@@ -157,7 +170,7 @@ async function browserLogin(opts: LoginOptions): Promise<string> {
   console.log(`  Enter code  ${chalk.bold.yellow(dc.userCode)}`);
   console.log();
 
-  if (opts.browser) openBrowser(dc.verificationUriComplete);
+  if (opts.browser) openUrl(dc.verificationUriComplete);
 
   const spinner = ora('Waiting for you to approve in the browser…').start();
   const { accessToken } = await pollForToken(dc, (secs) => {
@@ -186,14 +199,34 @@ async function saveKey(key: string): Promise<string> {
   return key;
 }
 
-async function pickModel(): Promise<string> {
+/**
+ * Pick a default model from the live catalog. Smart tiers (the cloud's own
+ * routing aliases) lead — they keep working as the catalog changes — followed
+ * by the full concrete list. Premium (credit-gated) models are tagged.
+ */
+async function pickModel(catalog: CloudModel[]): Promise<string> {
+  if (catalog.length === 0) return DEFAULT_MODEL;
+  const aliases = aliasesFrom(catalog);
+  const aliasIds = new Set(aliases.map((a) => a.id));
+  const tag = (m: CloudModel) => (m.premium ? chalk.yellow(' (needs credits)') : '');
+
+  const choices = [
+    new inquirer.Separator(chalk.dim('  ── Smart tiers — the cloud picks the model ──')),
+    ...aliases.map((m) => ({ name: `${m.id}${tag(m)}`, value: m.id })),
+    new inquirer.Separator(chalk.dim('  ── All models ──')),
+    ...catalog
+      .filter((m) => !aliasIds.has(m.id))
+      .map((m) => ({ name: `${m.id}${tag(m)} ${chalk.dim(m.ownedBy)}`, value: m.id })),
+  ];
+
   const { model } = await inquirer.prompt<{ model: string }>([
     {
       type: 'list',
       name: 'model',
       message: 'Default model:',
-      choices: FEATURED_MODELS.map((m) => ({ name: m.label, value: m.id })),
+      choices,
       default: DEFAULT_MODEL,
+      pageSize: 16,
     },
   ]);
   return model;
@@ -238,14 +271,25 @@ function printNextSteps(ids: string[], model: string): void {
   console.log();
 }
 
-function openBrowser(url: string): void {
-  const cmd =
-    process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-  try {
-    spawn(cmd, [url], { stdio: 'ignore', detached: true, shell: process.platform === 'win32' }).unref();
-  } catch {
-    /* user can open it manually */
+/**
+ * Out-of-box wizard tail: offer to set up the rest of the ecosystem (dev, mcp,
+ * apps). Interactive only; explicit non-interactive flags skip it silently.
+ */
+async function maybeOfferEcosystem(opts: LoginOptions): Promise<void> {
+  if (!process.stdout.isTTY || opts.key || opts.tool || opts.all) return;
+  const { go } = await inquirer.prompt<{ go: boolean }>([
+    {
+      type: 'confirm',
+      name: 'go',
+      message: 'Set up more of the Hanzo ecosystem now (dev, mcp, apps)?',
+      default: false,
+    },
+  ]);
+  if (!go) {
+    console.log(chalk.dim('  Later: `hanzo install`'));
+    return;
   }
+  await installComponents(await pickComponents());
 }
 
 function fail(err: unknown): never {

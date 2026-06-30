@@ -1,31 +1,18 @@
 /**
  * `hanzo models` — list models available through Hanzo Cloud for your key.
+ * Everything is read live from api.hanzo.ai; nothing is hardcoded.
  */
 
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { getConfig } from '../lib/config';
-import { fetchModels, FEATURED_MODELS, TIERS } from '../lib/models';
+import { fetchCatalog, aliasesFrom, EFFORT_ALIASES, EFFORT_ORDER } from '../lib/models';
 
 export const modelsCmd = new Command('models')
   .description('List models available through Hanzo Cloud')
-  .option('--featured', 'Show only the curated featured set')
-  .option('--tiers', 'Show the friendly capability tiers and what they map to')
-  .action(async (opts: { featured?: boolean; tiers?: boolean }) => {
-    if (opts.tiers) {
-      for (const [tier, id] of Object.entries(TIERS)) {
-        console.log(`  ${chalk.bold(tier.padEnd(10))} → ${id}`);
-      }
-      console.log(chalk.dim('\n  Use a tier anywhere a model is asked for: `hanzo use --model pro`'));
-      return;
-    }
-
-    if (opts.featured) {
-      for (const m of FEATURED_MODELS) console.log(`  ${chalk.bold(m.id.padEnd(20))} ${chalk.dim(m.label)}`);
-      return;
-    }
-
+  .option('--tiers', 'Show the smart tiers (effort words → cloud routing aliases)')
+  .action(async (opts: { tiers?: boolean }) => {
     const { apiKey } = await getConfig();
     if (!apiKey) {
       console.error(chalk.red('Not signed in. Run `hanzo login` first.'));
@@ -33,13 +20,32 @@ export const modelsCmd = new Command('models')
     }
 
     const spinner = ora('Fetching models…').start();
+    let catalog;
     try {
-      const ids = await fetchModels(apiKey);
+      catalog = await fetchCatalog(apiKey);
       spinner.stop();
-      for (const id of ids) console.log(`  ${id}`);
-      console.log(chalk.dim(`\n  ${ids.length} models`));
     } catch (err) {
       spinner.fail(chalk.red(err instanceof Error ? err.message : String(err)));
       process.exit(1);
     }
+
+    if (opts.tiers) {
+      const live = new Set(aliasesFrom(catalog).map((a) => a.id));
+      console.log(chalk.bold('  Smart tiers — the cloud picks the best model:\n'));
+      for (const word of EFFORT_ORDER) {
+        const alias = EFFORT_ALIASES[word]!;
+        const ok = live.has(alias) ? chalk.green('●') : chalk.dim('○');
+        console.log(`  ${ok} ${chalk.bold(word.padEnd(7))} → ${alias}`);
+      }
+      console.log(chalk.dim('\n  Use anywhere a model is asked for: `hanzo use --model high`'));
+      console.log(chalk.dim('  ● = live in your catalog. The alias is a real id; the cloud routes it.'));
+      return;
+    }
+
+    const pad = Math.max(...catalog.map((m) => m.id.length));
+    for (const m of catalog) {
+      const tag = m.premium ? chalk.yellow(' needs credits') : '';
+      console.log(`  ${m.id.padEnd(pad)}  ${chalk.dim(m.ownedBy)}${tag}`);
+    }
+    console.log(chalk.dim(`\n  ${catalog.length} models`));
   });
