@@ -41,6 +41,92 @@ export async function fetchModels(apiKey: string): Promise<string[]> {
 }
 
 /**
+ * A model as the public pricing catalog publishes it
+ * (`pricing.<brand>/v1/pricing/models`) — the same source the console renders:
+ * normalized provider, plan tier, context window, arch/params, and $/Mtok.
+ */
+export interface RichModel {
+  name: string;
+  /** Catalog id — bare for first-party (`zen3-omni`), OpenRouter-style for
+   *  third-party (`z-ai/glm-5.2`). The routing id is its last path segment. */
+  id?: string;
+  fullName?: string;
+  description?: string;
+  category?: string;
+  provider?: string;
+  tier?: string;
+  context?: number | null;
+  specs?: { arch?: string; params?: string };
+  features?: string[];
+  pricing?: {
+    input?: number | null;
+    output?: number | null;
+    cacheRead?: number | null;
+    cacheWrite?: number | null;
+  };
+}
+
+/**
+ * A rich model resolved against your live routing set: `routeId` is the id you
+ * actually pass to `--model`, `available` says whether your key can call it now.
+ */
+export type RichEntry = RichModel & { available: boolean; routeId: string };
+
+/** Public rich catalog — no key needed; it's the same data the console shows. */
+export async function fetchRichCatalog(): Promise<RichModel[]> {
+  const res = await fetch(`${endpoints.pricing}/v1/pricing/models`);
+  if (!res.ok) throw new Error(`Could not load catalog (${res.status} ${res.statusText})`);
+  const body = (await res.json()) as { models?: RichModel[] };
+  return body.models ?? [];
+}
+
+const lower = (s: string) => s.toLowerCase();
+/** The routing id is the last path segment of a catalog id/name (`a/b` → `b`). */
+const lastSeg = (s?: string) => (s ? s.split('/').pop()! : '');
+
+/** Every lowercased key a catalog entry can be matched on. */
+function matchKeys(m: RichModel): string[] {
+  return [m.id, m.name, lastSeg(m.id), lastSeg(m.name)].filter((k): k is string => !!k).map(lower);
+}
+
+/** Find a catalog model by any of its ids/names (case-insensitive). */
+export function findModel(catalog: RichModel[], query: string): RichModel | undefined {
+  const q = lower(query);
+  return catalog.find((m) => matchKeys(m).includes(q));
+}
+
+/**
+ * Join the rich catalog with your live routing set. One row per model you can
+ * actually call (keyed by the bare routing id, with its rich metadata), then —
+ * for `--all` — every other catalog model, marked unavailable. Mirrors the
+ * console's Models page: rich fields + honest availability, nothing invented.
+ */
+export async function fetchJoinedCatalog(apiKey: string): Promise<RichEntry[]> {
+  const [rich, ids] = await Promise.all([
+    fetchRichCatalog(),
+    fetchModels(apiKey).catch(() => [] as string[]),
+  ]);
+
+  // Index the catalog by every matchable key; first entry wins on collision.
+  const index = new Map<string, RichModel>();
+  for (const m of rich) for (const k of matchKeys(m)) if (!index.has(k)) index.set(k, m);
+
+  const live: RichEntry[] = ids.map((id) => {
+    const m = index.get(lower(id));
+    return { ...(m ?? { name: id }), name: m?.name ?? id, routeId: id, available: true };
+  });
+
+  const liveKeys = new Set(ids.map(lower));
+  const rest: RichEntry[] = rich
+    .filter((m) => !matchKeys(m).some((k) => liveKeys.has(k)))
+    .map((m) => ({ ...m, routeId: lastSeg(m.id) || m.name, available: false }));
+
+  live.sort((a, b) => a.routeId.localeCompare(b.routeId));
+  rest.sort((a, b) => a.name.localeCompare(b.name));
+  return [...live, ...rest];
+}
+
+/**
  * The cloud's semantic routing aliases — `zen-<word>` with no version digit
  * (`zen-auto`, `zen-pro`, `zen-max`, `zen-code`, …). Each is a real, callable
  * model id; the cloud resolves it to the best concrete model at that effort
