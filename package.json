@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "hanzo": "./dist/cli.js"
+    "hanzo": "./dist/cli.js",
+    "kms": "./dist/kms-cli.js"
   },
   "exports": {
     ".": {

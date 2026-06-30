@@ -1,0 +1,28 @@
+# Release @hanzo/helper and its white-label forks on a version tag.
+# One way: each package is published by the reusable npm-release workflow, which
+# pulls NPM_TOKEN from KMS. Tag the repo (vX.Y.Z) and everything ships.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  helper:
+    uses: ./.github/workflows/npm-release.yml
+    with:
+      package-dir: .
+
+  forks:
+    needs: helper
+    strategy:
+      matrix:
+        dir: [forks/lux, forks/zoo, forks/zen]
+    uses: ./.github/workflows/npm-release.yml
+    with:
+      package-dir: ${{ matrix.dir }}
+      build: false
