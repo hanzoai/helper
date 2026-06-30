@@ -3,7 +3,7 @@ description: >
   Load environment secrets from KMS into the job, via the one OIDC mechanism
   shared with local dev (the `kms` CLI). GitHub mints an OIDC token; KMS
   exchanges it at /v1/kms/oidc/login and returns the env's secrets from
-  /v1/kms/secrets. No long-lived KMS credential in GitHub.
+  /v1/kms/get-secrets. No long-lived KMS credential in GitHub.
 
 inputs:
   env:
@@ -58,7 +58,7 @@ runs:
         [ -n "$kms_token" ] && [ "$kms_token" != "null" ] || { echo "::error::KMS login failed"; exit 1; }
 
         # 3. Read the env's secrets.
-        resp=$(curl -sf "${KMS_BASE}/v1/kms/secrets?env=${KMS_ENV}&path=${KMS_PATH}" \
+        resp=$(curl -sf "${KMS_BASE}/v1/kms/get-secrets?env=${KMS_ENV}&path=${KMS_PATH}" \
           -H "Authorization: Bearer ${kms_token}" -H "Accept: application/json")
 
         # Flatten {KEY:val} or [{secretKey,secretValue}] → KEY=val lines.

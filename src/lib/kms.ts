@@ -2,10 +2,10 @@
  * KMS client — pull environment secrets for local dev.
  *
  * One mechanism, shared with CI: an OIDC token (the dev's IAM login here; a
- * GitHub OIDC token in Actions) is exchanged for a short-lived KMS token, which
- * reads secrets for one environment. KMS owns secrets, envs, and authz; IAM
- * only issues the token. They compose through the token — neither imports the
- * other.
+ * GitHub OIDC token in Actions) is exchanged at /v1/kms/oidc/login for a
+ * short-lived KMS token, which reads an environment's secrets from
+ * /v1/kms/get-secrets. KMS owns secrets, envs, and authz; IAM only issues the
+ * token. They compose through the token — neither imports the other.
  *
  * Concerns stay in their own path namespace: KMS lives under `/v1/kms/*`, IAM
  * under `/v1/iam/*`. The helper never crosses them.
@@ -13,10 +13,11 @@
 
 import { endpoints } from './endpoints';
 
-/** KMS surface — KMS only, under its own `/v1/kms` namespace. */
+/** KMS surface — KMS only, under its own `/v1/kms` namespace. Verb-noun names
+ *  match the IAM house style (`/v1/iam/get-account`, `/v1/iam/get-users`). */
 const KMS_PATHS = {
   oidcLogin: '/v1/kms/oidc/login',
-  secrets: '/v1/kms/secrets',
+  getSecrets: '/v1/kms/get-secrets',
 } as const;
 
 /** Environments secrets are scoped by — the network/deploy axis. */
@@ -49,7 +50,7 @@ export async function kmsLogin(oidcToken: string): Promise<string> {
 
 /** Fetch every secret for one environment as a flat key→value map. */
 export async function kmsSecrets(kmsToken: string, env: string, path = '/'): Promise<Record<string, string>> {
-  const url = new URL(`${endpoints.api}${KMS_PATHS.secrets}`);
+  const url = new URL(`${endpoints.api}${KMS_PATHS.getSecrets}`);
   url.searchParams.set('env', env);
   if (path && path !== '/') url.searchParams.set('path', path);
   const res = await fetch(url, {
