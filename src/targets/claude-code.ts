@@ -3,8 +3,9 @@
  *
  * Uses the `providers.hanzo` block in ~/.claude/settings.json — an additive,
  * non-destructive entry that lets users switch to Hanzo models per-session
- * (`/model hanzo/deepseek-v4-pro`) without replacing the default Anthropic
- * connection. The env block is NOT touched so the current session stays intact.
+ * without replacing the default connection. The top-level `model` field is
+ * updated to the selected Hanzo default, while the rest of the settings stay
+ * intact.
  *
  * Config paths are identical on all platforms (home-relative). Claude Code
  * also looks at CLAUDE_SETTINGS_PATH env override.
@@ -43,10 +44,10 @@ export const claudeCode: CodingTarget = {
         name: 'Hanzo AI',
         apiKey: creds.apiKey,
         baseURL: creds.apiBase + '/v1',
-        // Live catalog from the cloud; fall back to just the default if offline.
         models: creds.models && creds.models.length > 0 ? creds.models : [creds.model],
       },
     };
+    settings.model = creds.model;
     writeJson(SETTINGS, settings);
 
     const claudeJson = readJson<{ hasCompletedOnboarding?: boolean }>(CLAUDE_JSON);

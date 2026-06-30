@@ -169,9 +169,8 @@ export function resolveModel(input: string): string {
 }
 
 /**
- * Recommended default: `zen-auto`. The cloud routes it to the best available
- * model, so it keeps working no matter how the catalog changes — the most
- * "dynamic, works no matter what" choice for a fresh setup. Users can pick any
- * concrete id in the wizard instead.
+ * Recommended default: `glm-5.2`. It is the stable concrete default the helper
+ * writes for fresh setups; users can still override it with any effort word or
+ * explicit model id in the wizard.
  */
-export const DEFAULT_MODEL = 'zen-auto';
+export const DEFAULT_MODEL = 'glm-5.2';
