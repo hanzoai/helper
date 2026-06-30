@@ -33,6 +33,14 @@ export const endpoints = {
   get api(): string {
     return env('HANZO_API_URL', brand.api);
   },
+  /**
+   * Pricing service — the public rich catalog (`/v1/pricing/models`) and rate
+   * card (`/v1/pricing`). By infra convention it is `pricing.<site host>`, so
+   * the white-label forks resolve their own host automatically.
+   */
+  get pricing(): string {
+    return env('HANZO_PRICING_URL', `https://pricing.${new URL(brand.site).host}`);
+  },
 } as const;
 
 /** IAM ops, all relative to the issuer base. */
