@@ -43,8 +43,26 @@ codex           # Codex → Hanzo Cloud
 | `hanzo auth revoke` | Revoke your API key |
 | `hanzo auth logout` | Clear local credentials |
 | `hanzo models --tiers` | Show the smart tiers (effort words → cloud aliases) |
+| `hanzo kms pull` | Pull env secrets from KMS for local dev (also `kms`) |
 | `hanzo install [parts…]` | Set up the ecosystem (dev, mcp, node, apps, …) |
 | `hanzo doctor` | Diagnose connectivity and tool configuration |
+
+### Secrets for local dev (`kms`)
+
+One login, one mechanism. Your `hanzo login` mints an IAM OIDC token; `kms`
+exchanges it for a short-lived KMS token and reads an environment's secrets.
+KMS owns secrets, envs and authz (`/v1/kms/*`); IAM only issues the token
+(`/v1/iam/*`) — they compose through the token, nothing braided.
+
+```bash
+kms pull --env devnet            # write .env for local dev (also: hanzo kms pull)
+kms list --env devnet            # secret names only, no values
+kms pull --env testnet --out -   # print to stdout
+```
+
+Environments: `devnet` (default), `testnet`, `mainnet`, `production`. CI uses
+the *same* `/v1/kms/*` exchange with a GitHub OIDC token — see
+`.github/actions/kms-secrets` and the reusable `.github/workflows/npm-release.yml`.
 
 ### Smart tiers
 

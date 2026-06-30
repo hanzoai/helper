@@ -1,0 +1,68 @@
+# Reusable: publish one npm package, with NPM_TOKEN loaded from KMS via OIDC.
+# The one way an org repo publishes to npm — no long-lived token in GitHub, the
+# same KMS mechanism the `kms` CLI uses for local dev. Runs on our self-hosted
+# pool, never GitHub builders.
+#
+# Caller:
+#   jobs:
+#     release:
+#       uses: hanzoai/helper/.github/workflows/npm-release.yml@main
+#       permissions: { id-token: write, contents: read }
+#       with: { package-dir: ., kms-env: production }
+
+on:
+  workflow_call:
+    inputs:
+      package-dir:
+        description: Directory of the package to publish.
+        type: string
+        default: .
+      node-version:
+        type: string
+        default: "22"
+      kms-env:
+        description: KMS environment holding NPM_TOKEN.
+        type: string
+        default: production
+      build:
+        description: Run typecheck + lint + build before publishing.
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: hanzo-build-linux-amd64
+    defaults:
+      run:
+        working-directory: ${{ inputs.package-dir }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - if: ${{ inputs.build }}
+        run: pnpm typecheck && pnpm lint && pnpm build
+
+      # NPM_TOKEN → job env, via KMS over the shared OIDC mechanism.
+      - uses: hanzoai/helper/.github/actions/kms-secrets@main
+        with:
+          env: ${{ inputs.kms-env }}
+          path: /npm
+
+      - name: Publish
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}

@@ -10,6 +10,7 @@ import { authCmd } from './commands/auth';
 import { installCmd } from './commands/install';
 import { statusCmd, runStatus } from './commands/status';
 import { modelsCmd } from './commands/models';
+import { kmsCmd } from './commands/kms';
 import { doctorCmd } from './commands/doctor';
 import { getConfig } from './lib/config';
 import { brand } from './lib/brand';
@@ -29,6 +30,7 @@ program.addCommand(authCmd);
 program.addCommand(installCmd);
 program.addCommand(statusCmd);
 program.addCommand(modelsCmd);
+program.addCommand(kmsCmd);
 program.addCommand(doctorCmd);
 
 // Bare `hanzo` (or `npx @hanzo/helper`): if you're not signed in, run the login
