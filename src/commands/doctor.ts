@@ -19,8 +19,8 @@ export const doctorCmd = new Command('doctor')
   .action(async () => {
     const checks: Check[] = [];
 
-    checks.push(await reachable('IAM', `${endpoints.iam}/api/health`));
-    checks.push(await reachable('Cloud API', `${endpoints.api}/v1/health`));
+    checks.push(await reachable('IAM', `${endpoints.iam}/health`));
+    checks.push(await reachable('Cloud API', `${endpoints.api}/health`));
 
     const { apiKey, user } = await getConfig();
     checks.push({
