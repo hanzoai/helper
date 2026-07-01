@@ -20,9 +20,9 @@ inputs:
       trust the GitHub issuer; otherwise pass an IAM machine-identity token.
     required: true
   base-url:
-    description: Gateway base that serves /v1/kms (KMS owns this namespace).
+    description: KMS host that serves /v1/kms (its own host, not api.<brand>).
     required: false
-    default: https://api.hanzo.ai
+    default: https://kms.hanzo.ai
   export:
     description: "Where to put secrets: 'env' (job environment) or 'file'."
     required: false

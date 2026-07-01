@@ -19,8 +19,10 @@ export const doctorCmd = new Command('doctor')
   .action(async () => {
     const checks: Check[] = [];
 
-    checks.push(await reachable('IAM', `${endpoints.iam}/health`));
-    checks.push(await reachable('Cloud API', `${endpoints.api}/health`));
+    // Probe the real endpoints the tool depends on (stable), not a bare /health
+    // path (which varies by gateway config): IAM issuer discovery + the model list.
+    checks.push(await reachable('IAM', `${endpoints.iam}/.well-known/openid-configuration`));
+    checks.push(await reachable('Cloud API', `${endpoints.api}/v1/models`));
 
     const { apiKey, user } = await getConfig();
     checks.push({

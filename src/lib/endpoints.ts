@@ -41,6 +41,14 @@ export const endpoints = {
   get pricing(): string {
     return env('HANZO_PRICING_URL', `https://pricing.${new URL(brand.site).host}`);
   },
+  /**
+   * KMS — secrets, on its own host (`kms.<brand>`, per IAM's KMSHost). KMS is
+   * NOT proxied under api.<brand>/v1/kms today, so target the dedicated host;
+   * HANZO_KMS_URL overrides if a deployment fronts it elsewhere.
+   */
+  get kms(): string {
+    return env('HANZO_KMS_URL', brand.kms);
+  },
 } as const;
 
 /** IAM ops, all relative to the issuer base. */
