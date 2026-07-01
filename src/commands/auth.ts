@@ -10,9 +10,24 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { getConfig, setConfig, clearConfig } from '../lib/config';
 import { readApiKey, mintApiKey, revokeApiKey } from '../lib/apikeys';
+import { deviceSignIn } from '../lib/signin';
 import { maskKey } from '../targets';
 
 export const authCmd = new Command('auth').description('Manage your Hanzo session and API key');
+
+authCmd
+  .command('login')
+  .description('Sign in with IAM (device login) — same session as `hanzo login`')
+  .option('--no-browser', 'Do not open the browser automatically')
+  .action(async (opts: { browser: boolean }) => {
+    try {
+      await deviceSignIn(opts.browser);
+      console.log(chalk.green('✓ Signed in'));
+    } catch (err) {
+      console.error(chalk.red(`\n✗ ${err instanceof Error ? err.message : String(err)}`));
+      process.exit(1);
+    }
+  });
 
 authCmd
   .command('status')

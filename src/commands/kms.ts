@@ -60,7 +60,7 @@ kmsCmd
 async function session(orgOverride?: string): Promise<{ token: string; org: string }> {
   const cfg = await getConfig();
   if (!cfg.accessToken) {
-    console.error(chalk.red('Not signed in. Run `hanzo login` first.'));
+    console.error(chalk.red('Not signed in. Run `kms login` (or `hanzo login`) first.'));
     process.exit(1);
   }
   const org = orgOverride ?? cfg.user?.org;

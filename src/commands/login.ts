@@ -10,7 +10,8 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
-import { requestDeviceCode, pollForToken, fetchUser, DeviceAuthError } from '../lib/iam';
+import { DeviceAuthError } from '../lib/iam';
+import { deviceSignIn } from '../lib/signin';
 import { ensureApiKey } from '../lib/apikeys';
 import { setConfig } from '../lib/config';
 import { endpoints } from '../lib/endpoints';
@@ -22,7 +23,6 @@ import {
   type CloudModel,
 } from '../lib/models';
 import { installShellEnv, detectShell } from '../lib/shell-env';
-import { openUrl } from '../lib/open';
 import { installComponents, pickComponents } from '../lib/ecosystem';
 import { TARGETS, getTarget, codexEnvHint } from '../targets';
 
@@ -160,32 +160,15 @@ async function acquireApiKey(opts: LoginOptions): Promise<string> {
   return browserLogin(opts);
 }
 
-/** Device-login in the browser, mint/reuse the key, persist session + key. */
+/** Device sign-in, then mint/reuse the key on top of the resulting session. */
 async function browserLogin(opts: LoginOptions): Promise<string> {
-  const dc = await requestDeviceCode();
-
-  console.log();
-  console.log(chalk.bold('  Sign in to Hanzo'));
-  console.log(`  Visit       ${chalk.cyan(dc.verificationUri)}`);
-  console.log(`  Enter code  ${chalk.bold.yellow(dc.userCode)}`);
-  console.log();
-
-  if (opts.browser) openUrl(dc.verificationUriComplete);
-
-  const spinner = ora('Waiting for you to approve in the browser…').start();
-  const { accessToken } = await pollForToken(dc, (secs) => {
-    spinner.text = `Waiting for approval… (${secs}s left)`;
-  });
-  spinner.succeed('Signed in');
-
-  const user = await fetchUser(accessToken).catch(() => undefined);
-  if (user) console.log(chalk.dim(`  ${user.name}${user.email ? ` <${user.email}>` : ''}`));
+  const { accessToken } = await deviceSignIn(opts.browser);
 
   const keySpinner = ora('Provisioning API key…').start();
   const apiKey = await ensureApiKey(accessToken);
   keySpinner.succeed('API key ready');
 
-  await setConfig((c) => ({ ...c, accessToken, apiKey, ...(user ? { user } : {}) }));
+  await setConfig((c) => ({ ...c, apiKey }));
   return apiKey;
 }
 
