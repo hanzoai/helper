@@ -47,6 +47,7 @@ export const endpoints = {
 export const IAM_PATHS = {
   deviceAuthorization: '/oauth/device',
   token: '/oauth/token',
+  account: '/get-account',
   mintKeys: '/mint-user-keys',
   revokeKeys: '/revoke-user-keys',
 } as const;

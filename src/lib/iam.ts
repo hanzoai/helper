@@ -131,30 +131,31 @@ export async function pollForToken(
 }
 
 /**
- * Fetch the signed-in user's identity. The cloud API's /v1/get-account returns
- * IAM Claims with the user fields inlined (controllers/account.go GetAccount),
- * and accepts the device-login bearer token via the auto-signin filter.
+ * Fetch the signed-in user's identity from IAM's get-account
+ * (…/v1/iam/get-account, controllers/account.go GetAccount). The response is a
+ * { status, sub, name, data, data2 } envelope: the full account (email, owner,
+ * displayName, …) is under `data`, the org under `data2`. Accepts the
+ * device-login bearer token via the auto-signin filter.
  */
 export async function fetchUser(accessToken: string): Promise<UserInfo> {
-  const res = await fetch(`${endpoints.api}/v1/get-account`, {
+  const res = await fetch(`${endpoints.iam}${IAM_PATHS.account}`, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
   });
   if (!res.ok) {
     throw new DeviceAuthError(`Could not fetch profile (${res.status} ${res.statusText})`);
   }
-  const u = (await res.json()) as {
-    id?: string;
+  const body = (await res.json()) as {
     sub?: string;
     name?: string;
-    displayName?: string;
-    email?: string;
-    owner?: string;
+    data?: { id?: string; name?: string; displayName?: string; email?: string; owner?: string };
   };
+  const u = body.data ?? {};
+  const owner = u.owner;
   return {
-    id: u.id ?? u.sub ?? '',
-    name: u.displayName ?? u.name ?? u.email ?? 'unknown',
+    id: u.id ?? body.sub ?? '',
+    name: u.displayName ?? u.name ?? body.name ?? u.email ?? 'unknown',
     email: u.email ?? '',
-    ...(u.owner ? { org: u.owner } : {}),
+    ...(owner ? { org: owner } : {}),
   };
 }
 

@@ -6,7 +6,7 @@
  * both authorized by the device-login JWT as the *self* caller
  * (iam resolveTargetUserForKeys: admin OR self OR allowlisted app):
  *
- *   read   GET  {api}/v1/get-account        → claims.accessKey
+ *   read   GET  {iam}/get-account           → data.accessKey
  *   mint   POST {iam}/mint-user-keys        → { accessKey }   (self)
  *
  * `ensureApiKey` reads the existing key and only mints when the account has none
@@ -19,15 +19,18 @@ export class ApiKeyError extends Error {}
 
 /** Read the signed-in user's current `hk-` key, or undefined if none exists. */
 export async function readApiKey(accessToken: string): Promise<string | undefined> {
-  const res = await fetch(`${endpoints.api}/v1/get-account`, {
+  // The account read lives on the IAM issuer (…/v1/iam/get-account), same base
+  // as mint/revoke — NOT a bare /v1/get-account on the API host (that 404s).
+  const res = await fetch(`${endpoints.iam}${IAM_PATHS.account}`, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
   });
   if (!res.ok) {
     throw new ApiKeyError(`Could not read account (${res.status} ${res.statusText})`);
   }
-  // get-account returns IAM Claims; the user fields are inlined on the claims.
-  const claims = (await res.json()) as { accessKey?: string; data?: { accessKey?: string } };
-  const key = claims.accessKey ?? claims.data?.accessKey;
+  // get-account returns { status, msg, data }; the accessKey is on the account,
+  // which IAM inlines either at the top level or under `data`.
+  const body = (await res.json()) as { accessKey?: string; data?: { accessKey?: string } };
+  const key = body.accessKey ?? body.data?.accessKey;
   return key && key.startsWith('hk-') ? key : undefined;
 }
 
