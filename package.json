@@ -1,19 +1,19 @@
 {
   "name": "@hanzo/helper",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Hanzo CLI helper for API access, cloud services, MCP, and plugins",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "hanzo": "./dist/cli.js",
-    "kms": "./dist/kms-cli.js"
+    "hanzo": "dist/cli.js"
   },
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./cli": "./dist/cli.js"
+    "./cli": "./dist/cli.js",
+    "./kms-cli": "./dist/kms-cli.js"
   },
   "files": [
     "dist",
@@ -48,7 +48,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hanzoai/helper"
+    "url": "git+https://github.com/hanzoai/helper.git"
   },
   "bugs": {
     "url": "https://github.com/hanzoai/helper/issues"
