@@ -1,0 +1,36 @@
+{
+  "name": "@hanzo/kms",
+  "version": "1.0.5",
+  "description": "Standalone `kms` CLI — sign in with IAM and pull environment secrets for local dev",
+  "type": "module",
+  "bin": {
+    "kms": "bin/kms.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "hanzo",
+    "kms",
+    "secrets",
+    "cli",
+    "iam"
+  ],
+  "author": "Hanzo AI",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hanzoai/helper.git"
+  },
+  "homepage": "https://hanzo.ai",
+  "dependencies": {
+    "@hanzo/helper": "^1.0.5"
+  }
+}
