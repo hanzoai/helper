@@ -1,6 +1,6 @@
 {
   "name": "@zenlm/helper",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Zen CLI helper — sign in to Zen and use its AI models in Claude Code, Codex, and more",
   "type": "module",
   "bin": {
@@ -29,6 +29,6 @@
   },
   "homepage": "https://zenlm.org",
   "dependencies": {
-    "@hanzo/helper": "^1.0.5"
+    "@hanzo/helper": "^1.0.6"
   }
 }

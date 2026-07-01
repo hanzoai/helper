@@ -1,6 +1,6 @@
 {
   "name": "@hanzo/kms",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Standalone `kms` CLI — sign in with IAM and pull environment secrets for local dev",
   "type": "module",
   "bin": {
@@ -31,6 +31,6 @@
   },
   "homepage": "https://hanzo.ai",
   "dependencies": {
-    "@hanzo/helper": "^1.0.5"
+    "@hanzo/helper": "^1.0.6"
   }
 }

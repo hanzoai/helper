@@ -10,7 +10,8 @@
  *
  * By KMS's design the bulk list returns KEYS ONLY; values are read one at a
  * time. `pullSecrets` composes the two: list the env, then read each value.
- * IAM lives under /v1/iam/*, KMS under /v1/kms/* — the helper never crosses them.
+ * KMS runs on its own host (`kms.<brand>`, endpoints.kms) — it is not proxied
+ * under api.<brand>/v1/kms — and IAM lives under /v1/iam/*; never crossed.
  */
 
 import { endpoints } from './endpoints';
@@ -32,7 +33,7 @@ interface SecretMeta {
   env: string;
 }
 
-const base = (org: string) => `${endpoints.api}/v1/kms/orgs/${encodeURIComponent(org)}/secrets`;
+const base = (org: string) => `${endpoints.kms}/v1/kms/orgs/${encodeURIComponent(org)}/secrets`;
 
 const authFail = (res: Response, what: string): KmsError =>
   res.status === 401 || res.status === 403

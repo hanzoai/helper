@@ -25,6 +25,9 @@ export interface Brand {
   clientId: string;
   /** Public web root — ecosystem install/download pages hang off it. */
   site: string;
+  /** KMS host (secrets). KMS owns its own host; matches IAM's per-brand KMSHost
+   *  (iam cmd/iam/cli/init_apps.go brandSpecs). */
+  kms: string;
 }
 
 const BRANDS: Record<Brand['id'], Brand> = {
@@ -36,6 +39,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     api: 'https://api.hanzo.ai',
     clientId: 'hanzo-app',
     site: 'https://hanzo.ai',
+    kms: 'https://kms.hanzo.ai',
   },
   lux: {
     id: 'lux',
@@ -45,6 +49,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     api: 'https://api.lux.network',
     clientId: 'lux-app',
     site: 'https://lux.network',
+    kms: 'https://kms.lux.network',
   },
   zoo: {
     id: 'zoo',
@@ -54,6 +59,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     api: 'https://api.zoo.ngo',
     clientId: 'zoo-app',
     site: 'https://zoo.ngo',
+    kms: 'https://kms.zoo.network',
   },
   zen: {
     id: 'zen',
@@ -63,6 +69,7 @@ const BRANDS: Record<Brand['id'], Brand> = {
     api: 'https://api.zenlm.org',
     clientId: 'zen-app',
     site: 'https://zenlm.org',
+    kms: 'https://kms.zenlm.org',
   },
 };
 
