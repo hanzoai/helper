@@ -56,11 +56,13 @@ jobs:
       - if: ${{ inputs.build }}
         run: pnpm typecheck && pnpm lint && pnpm build
 
-      # NPM_TOKEN → job env, via KMS over the shared OIDC mechanism.
+      # NPM_TOKEN → job env, from KMS via the canonical /v1/kms API. The token
+      # is an IAM machine-identity token KMS trusts (KMS_IAM_TOKEN secret).
       - uses: hanzoai/helper/.github/actions/kms-secrets@main
         with:
+          org: hanzo
           env: ${{ inputs.kms-env }}
-          path: /npm
+          token: ${{ secrets.KMS_IAM_TOKEN }}
 
       - name: Publish
         run: npm publish --access public

@@ -1,96 +1,88 @@
 /**
  * KMS client — pull environment secrets for local dev.
  *
- * One mechanism, shared with CI: an OIDC token (the dev's IAM login here; a
- * GitHub OIDC token in Actions) is exchanged at /v1/kms/oidc/login for a
- * short-lived KMS token, which reads an environment's secrets from
- * /v1/kms/get-secrets. KMS owns secrets, envs, and authz; IAM only issues the
- * token. They compose through the token — neither imports the other.
+ * Uses the canonical, already-live KMS API (KMS owns /v1/kms/*): the dev's IAM
+ * login token is presented directly — KMS verifies it against hanzo.id's JWKS
+ * (authorize + canActOnOrg), no separate exchange. One token, one way.
  *
- * Concerns stay in their own path namespace: KMS lives under `/v1/kms/*`, IAM
- * under `/v1/iam/*`. The helper never crosses them.
+ *   list   GET /v1/kms/orgs/{org}/secrets?env=X            → key metadata (no values)
+ *   get    GET /v1/kms/orgs/{org}/secrets/{path}/{name}?env=X → one value
+ *
+ * By KMS's design the bulk list returns KEYS ONLY; values are read one at a
+ * time. `pullSecrets` composes the two: list the env, then read each value.
+ * IAM lives under /v1/iam/*, KMS under /v1/kms/* — the helper never crosses them.
  */
 
 import { endpoints } from './endpoints';
-
-/** KMS surface — KMS only, under its own `/v1/kms` namespace. Verb-noun names
- *  match the IAM house style (`/v1/iam/get-account`, `/v1/iam/get-users`). */
-const KMS_PATHS = {
-  oidcLogin: '/v1/kms/oidc/login',
-  getSecrets: '/v1/kms/get-secrets',
-} as const;
 
 /** Environments secrets are scoped by — the network/deploy axis. */
 export const KMS_ENVS = ['devnet', 'testnet', 'mainnet', 'production'] as const;
 export type KmsEnv = (typeof KMS_ENVS)[number];
 
-/** Environments that may hold production material — gated server-side; named so
- *  the CLI can warn before writing them to a local file. */
+/** Environments that may hold production material — named so the CLI can warn
+ *  before writing them to a local file (KMS still gates access server-side). */
 export const KMS_PROD_ENVS: ReadonlySet<string> = new Set(['mainnet', 'production']);
-
-/**
- * Exchange a trusted OIDC token (the dev's IAM access token) for a short-lived
- * KMS token. KMS validates it against the issuer's JWKS and applies its own
- * env/path authorization.
- */
-export async function kmsLogin(oidcToken: string): Promise<string> {
-  const res = await fetch(`${endpoints.api}${KMS_PATHS.oidcLogin}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${oidcToken}`, Accept: 'application/json' },
-  });
-  if (res.status === 401) {
-    throw new KmsError('KMS rejected your login. Run `hanzo login` to refresh, then retry.');
-  }
-  if (!res.ok) throw new KmsError(`KMS login failed (${res.status} ${res.statusText})`);
-  const body = (await res.json().catch(() => null)) as { token?: string; accessToken?: string } | null;
-  const token = body?.token ?? body?.accessToken;
-  if (!token) throw new KmsError('KMS did not return a token');
-  return token;
-}
-
-/** Fetch every secret for one environment as a flat key→value map. */
-export async function kmsSecrets(kmsToken: string, env: string, path = '/'): Promise<Record<string, string>> {
-  const url = new URL(`${endpoints.api}${KMS_PATHS.getSecrets}`);
-  url.searchParams.set('env', env);
-  if (path && path !== '/') url.searchParams.set('path', path);
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${kmsToken}`, Accept: 'application/json' },
-  });
-  if (!res.ok) throw new KmsError(`KMS secrets fetch failed (${res.status} ${res.statusText})`);
-  const body = (await res.json().catch(() => null)) as { secrets?: unknown } | null;
-  return normalizeSecrets(body?.secrets);
-}
-
-/** Login + fetch in one step — the common path. */
-export async function pullSecrets(
-  oidcToken: string,
-  env: string,
-  path = '/'
-): Promise<Record<string, string>> {
-  return kmsSecrets(await kmsLogin(oidcToken), env, path);
-}
 
 export class KmsError extends Error {}
 
+/** One metadata row from the list endpoint — keys only, never a value. */
+interface SecretMeta {
+  path: string;
+  name: string;
+  env: string;
+}
+
+const base = (org: string) => `${endpoints.api}/v1/kms/orgs/${encodeURIComponent(org)}/secrets`;
+
+const authFail = (res: Response, what: string): KmsError =>
+  res.status === 401 || res.status === 403
+    ? new KmsError(`KMS denied ${what} (${res.status}). Run \`hanzo login\` to refresh, or check your org access.`)
+    : new KmsError(`KMS ${what} failed (${res.status} ${res.statusText})`);
+
+/** List an env's secret keys (no values) for the org. */
+export async function listSecrets(iamToken: string, org: string, env: string): Promise<SecretMeta[]> {
+  const url = new URL(base(org));
+  url.searchParams.set('env', env);
+  const res = await fetch(url, { headers: auth(iamToken) });
+  if (!res.ok) throw authFail(res, 'secret listing');
+  const body = (await res.json().catch(() => null)) as { secrets?: SecretMeta[] } | null;
+  return body?.secrets ?? [];
+}
+
+/** Read one secret's value. `path` may be empty; `name` is required. */
+export async function getSecret(
+  iamToken: string,
+  org: string,
+  meta: SecretMeta,
+  env: string
+): Promise<string> {
+  const rest = meta.path ? `${meta.path}/${meta.name}` : meta.name;
+  const url = new URL(`${base(org)}/${rest}`);
+  url.searchParams.set('env', env);
+  const res = await fetch(url, { headers: auth(iamToken) });
+  if (!res.ok) throw authFail(res, `read ${meta.name}`);
+  const body = (await res.json().catch(() => null)) as { secret?: { value?: string } } | null;
+  return body?.secret?.value ?? '';
+}
+
 /**
- * Accept either shape KMS may return — a flat `{KEY: value}` map or an array of
- * `{secretKey, secretValue}` (Infisical-style) — and flatten to `{KEY: value}`.
+ * Pull every secret for one environment as a flat name→value map. Lists the
+ * env's keys, then reads each value (KMS has no bulk-value endpoint by design).
+ * Reads run with bounded concurrency so a large env stays quick without
+ * hammering the service.
  */
-function normalizeSecrets(secrets: unknown): Record<string, string> {
-  if (!secrets) return {};
-  if (Array.isArray(secrets)) {
-    const out: Record<string, string> = {};
-    for (const s of secrets as Array<Record<string, unknown>>) {
-      const k = (s.secretKey ?? s.key ?? s.name) as string | undefined;
-      const v = (s.secretValue ?? s.value) as string | undefined;
-      if (k != null && v != null) out[k] = String(v);
-    }
-    return out;
+export async function pullSecrets(iamToken: string, org: string, env: string): Promise<Record<string, string>> {
+  const metas = await listSecrets(iamToken, org, env);
+  const out: Record<string, string> = {};
+  const CONCURRENCY = 8;
+  for (let i = 0; i < metas.length; i += CONCURRENCY) {
+    const batch = metas.slice(i, i + CONCURRENCY);
+    const values = await Promise.all(batch.map((m) => getSecret(iamToken, org, m, env)));
+    batch.forEach((m, j) => (out[m.name] = values[j]!));
   }
-  if (typeof secrets === 'object') {
-    return Object.fromEntries(
-      Object.entries(secrets as Record<string, unknown>).map(([k, v]) => [k, String(v)])
-    );
-  }
-  return {};
+  return out;
+}
+
+function auth(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}`, Accept: 'application/json' };
 }

@@ -1,27 +1,28 @@
 name: Load KMS secrets
 description: >
-  Load environment secrets from KMS into the job, via the one OIDC mechanism
-  shared with local dev (the `kms` CLI). GitHub mints an OIDC token; KMS
-  exchanges it at /v1/kms/oidc/login and returns the env's secrets from
-  /v1/kms/get-secrets. No long-lived KMS credential in GitHub.
+  Load an org/env's secrets from KMS into the job, using the canonical live KMS
+  API (/v1/kms/orgs/{org}/secrets). The token is an IAM-issued OIDC token KMS
+  verifies against hanzo.id's JWKS — the same trust the `kms` CLI uses for local
+  dev. KMS lists keys, then reads each value (no bulk-value endpoint by design).
 
 inputs:
+  org:
+    description: Organization slug (KMS scopes secrets by org).
+    required: true
   env:
     description: "Environment slug: devnet | testnet | mainnet | production."
     required: false
     default: production
-  path:
-    description: Secret path.
-    required: false
-    default: /
+  token:
+    description: >
+      IAM-issued OIDC/access token KMS trusts (hanzo.id issuer). Required —
+      the GitHub Actions OIDC token is only accepted if KMS is configured to
+      trust the GitHub issuer; otherwise pass an IAM machine-identity token.
+    required: true
   base-url:
     description: Gateway base that serves /v1/kms (KMS owns this namespace).
     required: false
     default: https://api.hanzo.ai
-  audience:
-    description: OIDC audience the GitHub token is minted for.
-    required: false
-    default: kms.hanzo.ai
   export:
     description: "Where to put secrets: 'env' (job environment) or 'file'."
     required: false
@@ -37,42 +38,34 @@ runs:
     - name: Load secrets from KMS
       shell: bash
       env:
+        KMS_ORG: ${{ inputs.org }}
         KMS_ENV: ${{ inputs.env }}
-        KMS_PATH: ${{ inputs.path }}
+        KMS_TOKEN: ${{ inputs.token }}
         KMS_BASE: ${{ inputs.base-url }}
-        KMS_AUDIENCE: ${{ inputs.audience }}
         KMS_EXPORT: ${{ inputs.export }}
         KMS_FILE: ${{ inputs.file }}
       run: |
         set -euo pipefail
+        secrets_url="${KMS_BASE}/v1/kms/orgs/${KMS_ORG}/secrets"
+        auth=(-H "Authorization: Bearer ${KMS_TOKEN}" -H "Accept: application/json")
 
-        # 1. GitHub OIDC token (requires permissions: id-token: write).
-        oidc=$(curl -sf "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${KMS_AUDIENCE}" \
-          -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
-        [ -n "$oidc" ] && [ "$oidc" != "null" ] || { echo "::error::no GitHub OIDC token (need id-token: write)"; exit 1; }
+        # 1. List the env's secret keys (metadata only — no values).
+        names=$(curl -sf "${secrets_url}?env=${KMS_ENV}" "${auth[@]}" \
+          | jq -r '.secrets[] | [.path, .name] | @tsv')
 
-        # 2. Exchange it for a KMS token — KMS owns /v1/kms.
-        kms_token=$(curl -sf -X POST "${KMS_BASE}/v1/kms/oidc/login" \
-          -H "Authorization: Bearer ${oidc}" -H "Accept: application/json" \
-          | jq -r '.token // .accessToken')
-        [ -n "$kms_token" ] && [ "$kms_token" != "null" ] || { echo "::error::KMS login failed"; exit 1; }
-
-        # 3. Read the env's secrets.
-        resp=$(curl -sf "${KMS_BASE}/v1/kms/get-secrets?env=${KMS_ENV}&path=${KMS_PATH}" \
-          -H "Authorization: Bearer ${kms_token}" -H "Accept: application/json")
-
-        # Flatten {KEY:val} or [{secretKey,secretValue}] → KEY=val lines.
-        flatten='if (.secrets|type)=="array" then (.secrets[]|"\(.secretKey // .key)=\(.secretValue // .value)") else (.secrets|to_entries[]|"\(.key)=\(.value)") end'
-
-        if [ "${KMS_EXPORT}" = "file" ]; then
-          echo "$resp" | jq -r "$flatten" > "${KMS_FILE}"
-          echo "Wrote $(wc -l < "${KMS_FILE}") secrets to ${KMS_FILE} (${KMS_ENV})"
-        else
-          while IFS= read -r line; do
-            [ -z "$line" ] && continue
-            key=${line%%=*}; val=${line#*=}
+        [ "${KMS_EXPORT}" = "file" ] && : > "${KMS_FILE}"
+        count=0
+        # 2. Read each value; export or write it.
+        while IFS=$'\t' read -r path name; do
+          [ -z "$name" ] && continue
+          rest="$name"; [ -n "$path" ] && rest="${path}/${name}"
+          val=$(curl -sf "${secrets_url}/${rest}?env=${KMS_ENV}" "${auth[@]}" | jq -r '.secret.value')
+          if [ "${KMS_EXPORT}" = "file" ]; then
+            echo "${name}=${val}" >> "${KMS_FILE}"
+          else
             echo "::add-mask::${val}"
-            echo "${key}=${val}" >> "$GITHUB_ENV"
-          done < <(echo "$resp" | jq -r "$flatten")
-          echo "Loaded $(echo "$resp" | jq -r "$flatten" | grep -c '=') secrets into job env (${KMS_ENV})"
-        fi
+            echo "${name}=${val}" >> "$GITHUB_ENV"
+          fi
+          count=$((count+1))
+        done <<< "$names"
+        echo "Loaded ${count} secrets (${KMS_ORG}/${KMS_ENV})"
