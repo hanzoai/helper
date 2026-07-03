@@ -21,6 +21,7 @@ const SETTINGS = path.join(os.homedir(), '.claude', 'settings.json');
 const CLAUDE_JSON = path.join(os.homedir(), '.claude.json');
 
 interface ClaudeSettings {
+  model?: string;
   providers?: Record<string, {
     apiKey?: string;
     baseURL?: string;
@@ -29,6 +30,11 @@ interface ClaudeSettings {
   }>;
   [k: string]: unknown;
 }
+
+// Curated flagship coding models surfaced in Claude Code's picker (the live
+// catalog carries 60+ ids — too many to list). The selected default is always
+// merged in below, so the picker never omits what the user actually chose.
+const HANZO_MODELS = ['glm-5.2', 'deepseek-v4-flash', 'deepseek-v4-pro', 'zen5-max'];
 
 export const claudeCode: CodingTarget = {
   id: 'claude-code',
@@ -44,7 +50,7 @@ export const claudeCode: CodingTarget = {
         name: 'Hanzo AI',
         apiKey: creds.apiKey,
         baseURL: creds.apiBase + '/v1',
-        models: creds.models && creds.models.length > 0 ? creds.models : [creds.model],
+        models: Array.from(new Set([creds.model, ...HANZO_MODELS])),
       },
     };
     settings.model = creds.model;

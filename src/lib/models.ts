@@ -153,7 +153,6 @@ export const EFFORT_ALIASES: Record<string, string> = {
   pro: 'zen-pro',
   xhigh: 'zen-max',
   max: 'zen-max',
-  ultra: 'zen-max',
   code: 'zen-code',
   coding: 'zen-code',
   agent: 'zen-agent',
