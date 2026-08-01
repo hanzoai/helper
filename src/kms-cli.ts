@@ -3,7 +3,7 @@
  * Standalone `kms` command — pull environment secrets for local dev.
  *
  * Self-sufficient: `kms login` signs in via IAM (the same device flow and the
- * same ~/.hanzo/config.json token store as `hanzo login`), so `kms pull` works
+ * same ~/.hanzo/config.json token store as `hanzo-helper login`), so `kms pull` works
  * whether you signed in through `kms` or `hanzo`. One flow, one token store.
  */
 
@@ -19,7 +19,7 @@ const program = new Command('kms')
 
 program
   .command('login')
-  .description('Sign in with IAM (device login) — shared with `hanzo login`')
+  .description('Sign in with IAM (device login) — shared with `hanzo-helper login`')
   .option('--no-browser', 'Do not open the browser automatically')
   .action(async (opts: { browser: boolean }) => {
     try {

@@ -1,5 +1,5 @@
 /**
- * `hanzo login` — the one command that does everything:
+ * `hanzo-helper login` — the one command that does everything:
  *   1. Device login against hanzo.id (no password typed into the terminal).
  *   2. Mint (or reuse) a Hanzo API key.
  *   3. Pick a default model.
@@ -77,7 +77,7 @@ export async function runLogin(opts: LoginOptions): Promise<void> {
     const targets = await resolveTargets(opts);
     if (targets.length === 0) {
       console.log(chalk.yellow('\nNo coding tools selected. Nothing configured.'));
-      console.log(chalk.dim('Your API key is saved; run `hanzo use <tool>` later.'));
+      console.log(chalk.dim('Your API key is saved; run `hanzo-helper use <tool>` later.'));
       return;
     }
 
@@ -269,7 +269,7 @@ async function maybeOfferEcosystem(opts: LoginOptions): Promise<void> {
     },
   ]);
   if (!go) {
-    console.log(chalk.dim('  Later: `hanzo install`'));
+    console.log(chalk.dim('  Later: `hanzo-helper install`'));
     return;
   }
   await installComponents(await pickComponents());

@@ -1,5 +1,5 @@
 /**
- * `hanzo auth` — inspect or clear the saved session, and manage the `hk-` key.
+ * `hanzo-helper auth` — inspect or clear the saved session, and manage the `hk-` key.
  *
  * Hanzo issues ONE per-user Cloud API key (the IAM accessKey). There is no list
  * of named keys; you read it, rotate it, or revoke it.
@@ -17,7 +17,7 @@ export const authCmd = new Command('auth').description('Manage your Hanzo sessio
 
 authCmd
   .command('login')
-  .description('Sign in with IAM (device login) — same session as `hanzo login`')
+  .description('Sign in with IAM (device login) — same session as `hanzo-helper login`')
   .option('--no-browser', 'Do not open the browser automatically')
   .action(async (opts: { browser: boolean }) => {
     try {
@@ -35,7 +35,7 @@ authCmd
   .action(async () => {
     const { user, apiKey, accessToken } = await getConfig();
     if (!apiKey && !accessToken) {
-      console.log(chalk.yellow('Not signed in. Run `hanzo login`.'));
+      console.log(chalk.yellow('Not signed in. Run `hanzo-helper login`.'));
       process.exit(1);
     }
     console.log(chalk.green('✓ Signed in'));
@@ -65,7 +65,7 @@ authCmd
       const key = await readApiKey(token);
       spinner.stop();
       if (!key) {
-        console.log(chalk.yellow('No API key yet. Create one with `hanzo auth rotate`.'));
+        console.log(chalk.yellow('No API key yet. Create one with `hanzo-helper auth rotate`.'));
         return;
       }
       console.log(opts.reveal ? key : maskKey(key));
@@ -86,7 +86,7 @@ authCmd
       await setConfig((c) => ({ ...c, apiKey: key }));
       spinner.succeed(chalk.green('New API key minted'));
       console.log(chalk.bold(key));
-      console.log(chalk.dim('Saved locally and shown once. Re-run `hanzo use` to update your tools.'));
+      console.log(chalk.dim('Saved locally and shown once. Re-run `hanzo-helper use` to update your tools.'));
     } catch (err) {
       spinner.fail(chalk.red(err instanceof Error ? err.message : String(err)));
       process.exit(1);
@@ -111,7 +111,7 @@ authCmd
 async function requireToken(): Promise<string> {
   const { accessToken } = await getConfig();
   if (!accessToken) {
-    console.error(chalk.red('Not signed in. Run `hanzo login` first.'));
+    console.error(chalk.red('Not signed in. Run `hanzo-helper login` first.'));
     process.exit(1);
   }
   return accessToken;

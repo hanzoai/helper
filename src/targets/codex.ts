@@ -86,7 +86,7 @@ export const codex: CodingTarget = {
 };
 
 /**
- * The env line that makes the key available to Codex. `hanzo login` prints this
+ * The env line that makes the key available to Codex. `hanzo-helper login` prints this
  * so users can add it to their shell rc; sourcing ~/.hanzo/env also works.
  */
 export function codexEnvHint(): string {

@@ -1,6 +1,6 @@
 /**
- * `hanzo use <tool>` / `hanzo unuse <tool>` — point an already-installed coding
- * tool at Hanzo (or detach it) using the API key saved by `hanzo login`.
+ * `hanzo-helper use <tool>` / `hanzo-helper unuse <tool>` — point an already-installed coding
+ * tool at Hanzo (or detach it) using the API key saved by `hanzo-helper login`.
  */
 
 import { Command } from 'commander';
@@ -13,11 +13,11 @@ import { TARGETS, getTarget, codexEnvHint } from '../targets';
 export const useCmd = new Command('use')
   .description('Point a coding tool at Hanzo using your saved API key')
   .argument('[tool]', 'Tool id (claude-code, codex). Omit to apply to all installed tools.')
-  .option('--model <id|tier>', 'Model id or effort (auto, fast, high, max, code, agent)', DEFAULT_MODEL)
+  .option('--model <id>', 'Model id from the live catalog (`hanzo-helper models`)', DEFAULT_MODEL)
   .action(async (tool: string | undefined, opts: { model: string }) => {
     const { apiKey } = await getConfig();
     if (!apiKey) {
-      console.error(chalk.red('Not signed in. Run `hanzo login` first.'));
+      console.error(chalk.red('Not signed in. Run `hanzo-helper login` first.'));
       process.exit(1);
     }
 

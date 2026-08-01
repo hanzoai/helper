@@ -1,5 +1,5 @@
 /**
- * `hanzo status` — one screen showing the session and every coding tool's state.
+ * `hanzo-helper status` — one screen showing the session and every coding tool's state.
  */
 
 import { Command } from 'commander';
@@ -22,7 +22,7 @@ export async function runStatus(): Promise<void> {
     console.log(chalk.dim(`    key  ${maskKey(apiKey)}`));
     console.log(chalk.dim(`    api  ${endpoints.api}`));
   } else {
-    console.log(`  ${chalk.yellow('○')} not signed in — run ${chalk.cyan('hanzo login')}`);
+    console.log(`  ${chalk.yellow('○')} not signed in — run ${chalk.cyan('hanzo-helper login')}`);
   }
 
   console.log(chalk.bold('\n  Coding tools'));

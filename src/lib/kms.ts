@@ -37,7 +37,7 @@ const base = (org: string) => `${endpoints.kms}/v1/kms/orgs/${encodeURIComponent
 
 const authFail = (res: Response, what: string): KmsError =>
   res.status === 401 || res.status === 403
-    ? new KmsError(`KMS denied ${what} (${res.status}). Run \`hanzo login\` to refresh, or check your org access.`)
+    ? new KmsError(`KMS denied ${what} (${res.status}). Run \`hanzo-helper login\` to refresh, or check your org access.`)
     : new KmsError(`KMS ${what} failed (${res.status} ${res.statusText})`);
 
 /** List an env's secret keys (no values) for the org. */

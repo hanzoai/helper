@@ -1,9 +1,9 @@
 /**
- * `hanzo install [components...]` — set up the Hanzo ecosystem.
+ * `hanzo-helper install [components...]` — set up the Hanzo ecosystem.
  *   no args, interactive → pick from a checklist (core tools pre-checked)
  *   no args, non-interactive → install the core tools (dev, mcp)
  *   named → install exactly those
- *   `hanzo install list` → show everything available
+ *   `hanzo-helper install list` → show everything available
  */
 
 import { Command } from 'commander';
@@ -22,7 +22,7 @@ export const installCmd = new Command('install')
   .action(async (ids: string[]) => {
     const chosen = ids.length > 0 ? resolveIds(ids) : await pickComponents();
     await installComponents(chosen);
-    if (chosen.length > 0) console.log(chalk.dim('\n  Done. `hanzo install list` shows the rest.'));
+    if (chosen.length > 0) console.log(chalk.dim('\n  Done. `hanzo-helper install list` shows the rest.'));
   });
 
 installCmd

@@ -1,11 +1,11 @@
 /**
- * `hanzo kms` (also installed as the standalone `kms` command) — pull
+ * `hanzo-helper kms` (also installed as the standalone `kms` command) — pull
  * environment secrets from KMS for local dev, using your existing IAM login.
  *
  *   kms pull [--env devnet] [--org <org>] [--out .env]   write a dotenv file
  *   kms list [--env devnet] [--org <org>]                names only (no values)
  *
- * Auth is your `hanzo login` session — one login, one token store. Your org
+ * Auth is your `hanzo-helper login` session — one login, one token store. Your org
  * comes from that login (override with --org). KMS decides what you may read
  * per env; this is just the client.
  */
@@ -20,7 +20,7 @@ import { listSecrets, pullSecrets, KMS_ENVS, KMS_PROD_ENVS, KmsError } from '../
 const DEFAULT_ENV = 'devnet';
 
 export const kmsCmd = new Command('kms')
-  .description('Pull environment secrets from KMS for local dev (uses your hanzo login)');
+  .description('Pull environment secrets from KMS for local dev (uses your hanzo-helper login)');
 
 kmsCmd
   .command('pull')
@@ -60,12 +60,12 @@ kmsCmd
 async function session(orgOverride?: string): Promise<{ token: string; org: string }> {
   const cfg = await getConfig();
   if (!cfg.accessToken) {
-    console.error(chalk.red('Not signed in. Run `kms login` (or `hanzo login`) first.'));
+    console.error(chalk.red('Not signed in. Run `kms login` (or `hanzo-helper login`) first.'));
     process.exit(1);
   }
   const org = orgOverride ?? cfg.user?.org;
   if (!org) {
-    console.error(chalk.red('No organization found. Pass --org <org> or run `hanzo login` again.'));
+    console.error(chalk.red('No organization found. Pass --org <org> or run `hanzo-helper login` again.'));
     process.exit(1);
   }
   return { token: cfg.accessToken, org };

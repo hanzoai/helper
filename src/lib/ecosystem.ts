@@ -72,7 +72,7 @@ export const COMPONENTS: readonly Component[] = [
     steps: [
       'Download the node for your platform from the link above.',
       'Run it once to start the local engine (serves an OpenAI-compatible API).',
-      'Point a tool at it with `hanzo use --model <id>` once it is running.',
+      'Point a tool at it with `hanzo-helper use --model <id>` once it is running.',
     ],
   },
   {
@@ -107,7 +107,7 @@ export const COMPONENTS: readonly Component[] = [
     steps: [
       'VS Code   → search "Hanzo" in the Extensions marketplace.',
       'JetBrains → search "Hanzo" in Settings → Plugins → Marketplace.',
-      'Sign in with your API key (saved by `hanzo login`) when prompted.',
+      'Sign in with your API key (saved by `hanzo-helper login`) when prompted.',
     ],
   },
   {

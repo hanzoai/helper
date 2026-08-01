@@ -1,11 +1,11 @@
 /**
  * Device sign-in — the one IAM login primitive, shared by every entry point
- * (`hanzo login`, `hanzo auth login`, `kms login`). It runs the RFC 8628 device
+ * (`hanzo-helper login`, `hanzo-helper auth login`, `kms login`). It runs the RFC 8628 device
  * flow against hanzo.id, resolves the user, and persists the access token +
  * identity to the shared ~/.hanzo/config.json. One token store, one flow.
  *
  * It deliberately does NOT mint an API key or configure tools — that is
- * `hanzo login`'s job on top of this. A caller that only needs an IAM session
+ * `hanzo-helper login`'s job on top of this. A caller that only needs an IAM session
  * (e.g. `kms` reading secrets) uses this alone.
  */
 

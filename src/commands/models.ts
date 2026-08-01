@@ -36,7 +36,7 @@ export const modelsCmd = new Command('models')
   .action(async (name: string | undefined, opts: { all?: boolean; tiers?: boolean }) => {
     const { apiKey } = await getConfig();
     if (!apiKey) {
-      console.error(chalk.red('Not signed in. Run `hanzo login` first.'));
+      console.error(chalk.red('Not signed in. Run `hanzo-helper login` first.'));
       process.exit(1);
     }
 
@@ -144,7 +144,7 @@ async function showTiers(apiKey: string): Promise<void> {
     const ok = live.has(alias) ? chalk.green('●') : chalk.dim('○');
     console.log(`  ${ok} ${chalk.bold(word.padEnd(7))} → ${alias}`);
   }
-  console.log(chalk.dim('\n  Use anywhere a model is asked for: `hanzo use --model high`'));
+  console.log(chalk.dim('\n  Use anywhere a model is asked for: `hanzo-helper use --model high`'));
   console.log(chalk.dim('  ● = live in your catalog. The alias is a real id; the cloud routes it.'));
 }
 

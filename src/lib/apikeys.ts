@@ -66,7 +66,7 @@ export async function revokeApiKey(accessToken: string): Promise<void> {
 
 /**
  * Return a usable `hk-` key: reuse the account's existing one, else mint a new
- * one. Reading first means re-running `hanzo login` does not rotate (and break)
+ * one. Reading first means re-running `hanzo-helper login` does not rotate (and break)
  * a key already wired into the user's coding tools.
  */
 export async function ensureApiKey(accessToken: string): Promise<string> {

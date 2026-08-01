@@ -18,8 +18,11 @@ import { version } from './lib/version';
 
 const program = new Command();
 
+// `hanzo` is the Hanzo CLI (a native binary, curl -fsSL https://hanzo.sh | sh).
+// This program is `hanzo-helper`. Two programs under one name is how `hanzo
+// login` came to mean different things depending on install order.
 program
-  .name(brand.bin)
+  .name(`${brand.bin}-helper`)
   .description(`Sign in to ${brand.name} and use its AI models in Claude Code, Codex, and more`)
   .version(version);
 

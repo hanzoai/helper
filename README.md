@@ -1,12 +1,12 @@
 # @hanzo/helper
 
-> Sign in to Hanzo and use its AI models in Claude Code, Codex, and other coding tools.
+> Sign in to Hanzo and point your coding tools at Hanzo Cloud.
 
-One command points your coding tool at [Hanzo Cloud](https://hanzo.ai): browser
-device login, an API key minted for you, and the tool configured to talk to
-`api.hanzo.ai` — which speaks both the OpenAI (`/v1/chat/completions`) and
-Anthropic (`/v1/messages`) protocols, so every model (Claude, GLM, GPT,
-DeepSeek, Kimi, …) works in tools built for either.
+One command does browser device login, mints an `hk-` API key for you, and writes
+the config your coding tools read. `api.hanzo.ai` answers on both the
+`/v1/chat/completions` and `/v1/messages` shapes, so a tool built for either
+works against the whole Hanzo catalog — the Zen family (`zen5`, `zen5-coder`,
+`enso`, …) and every model your key can route to.
 
 ## Quick start
 
@@ -21,68 +21,68 @@ That will:
 3. Let you pick a default model.
 4. Configure the coding tools you choose.
 
-Then just run your tool — it's already talking to Hanzo:
+Then run your tool — it is already talking to Hanzo.
+
+## The command is `hanzo-helper`, not `hanzo`
+
+`hanzo` is the [Hanzo CLI](https://hanzo.sh), a native binary with a command
+group per Hanzo Cloud product. This package installs `hanzo-helper` so the two
+never shadow each other on PATH. (In the CLI, signing in is `hanzo auth login`; a
+bare `hanzo login` is read there as an AI task.)
 
 ```bash
-claude          # Claude Code → Hanzo Cloud
-codex           # Codex → Hanzo Cloud
+npm i -g @hanzo/helper
+hanzo-helper login
 ```
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `hanzo login` | Device login, mint API key, configure tools |
-| `hanzo use [tool]` | Point a tool at Hanzo using your saved key |
-| `hanzo unuse [tool]` | Detach a tool from Hanzo (keep its other settings) |
-| `hanzo status` | Session + every tool's configuration state |
-| `hanzo models` | List models available to your key |
-| `hanzo auth status` | Who you're signed in as |
-| `hanzo auth key [--reveal]` | Show your current API key |
-| `hanzo auth rotate` | Mint a fresh API key (old one stops working) |
-| `hanzo auth revoke` | Revoke your API key |
-| `hanzo auth logout` | Clear local credentials |
-| `hanzo models --tiers` | Show the smart tiers (effort words → cloud aliases) |
-| `hanzo kms pull` | Pull env secrets from KMS for local dev (also `kms`) |
-| `hanzo install [parts…]` | Set up the ecosystem (dev, mcp, node, apps, …) |
-| `hanzo doctor` | Diagnose connectivity and tool configuration |
+| `hanzo-helper login` | Device login, mint API key, configure tools |
+| `hanzo-helper use [tool]` | Point a tool at Hanzo using your saved key |
+| `hanzo-helper unuse [tool]` | Detach a tool from Hanzo (keep its other settings) |
+| `hanzo-helper status` | Session + every tool's configuration state |
+| `hanzo-helper models` | List models available to your key |
+| `hanzo-helper auth status` | Who you're signed in as |
+| `hanzo-helper auth key [--reveal]` | Show your current API key |
+| `hanzo-helper auth rotate` | Mint a fresh API key (the old one stops working) |
+| `hanzo-helper auth revoke` | Revoke your API key |
+| `hanzo-helper auth logout` | Clear local credentials |
+| `hanzo-helper kms pull` | Pull env secrets from KMS for local dev (also `kms`) |
+| `hanzo-helper install [parts…]` | Set up the ecosystem (dev, mcp, node, apps, …) |
+| `hanzo-helper doctor` | Diagnose connectivity and tool configuration |
+
+Bare `hanzo-helper` runs login if you are signed out, and status if you are not.
+
+## Choosing a model
+
+The catalog is read live from `api.hanzo.ai/v1/models` — nothing is hardcoded, so
+new models appear without a release here.
+
+```bash
+hanzo-helper models                       # the live catalog for your key
+hanzo-helper use claude-code --model zen5-coder
+```
+
+`--model` takes any id the catalog returns.
 
 ### Secrets for local dev (`kms`)
 
-One login, one mechanism. Your `hanzo login` mints an IAM OIDC token; `kms`
-exchanges it for a short-lived KMS token and reads an environment's secrets.
-KMS owns secrets, envs and authz (`/v1/kms/*`); IAM only issues the token
-(`/v1/iam/*`) — they compose through the token, nothing braided.
+One login, one mechanism. Your login mints an IAM OIDC token; `kms` exchanges it
+for a short-lived KMS token and reads an environment's secrets. KMS owns secrets,
+envs and authz (`/v1/kms/*`); IAM only issues the token (`/v1/iam/*`) — they
+compose through the token, nothing braided.
 
 ```bash
-kms pull --env devnet            # write .env for local dev (also: hanzo kms pull)
+kms pull --env devnet            # write .env for local dev (also: hanzo-helper kms pull)
 kms list --env devnet            # secret names only, no values
 kms pull --env testnet --out -   # print to stdout
 ```
 
-Environments: `devnet` (default), `testnet`, `mainnet`, `production`. CI uses
-the *same* `/v1/kms/*` exchange with a GitHub OIDC token — see
+Environments: `devnet` (default), `testnet`, `mainnet`, `production`. CI uses the
+*same* `/v1/kms/*` exchange with a GitHub OIDC token — see
 `.github/actions/kms-secrets` and the reusable `.github/workflows/npm-release.yml`.
-
-### Smart tiers
-
-The catalog is read live from `api.hanzo.ai/v1/models` — nothing is hardcoded.
-Beyond concrete ids (`glm-5.2`, `deepseek-v4-pro`, …) you can ask for an
-**effort word** and let the cloud pick the model:
-
-| Word | Routes to | |
-| --- | --- | --- |
-| `auto` | `zen-auto` | the cloud chooses (recommended default) |
-| `fast` | `zen-normal` | quick, everyday |
-| `high` | `zen-pro` | stronger reasoning & coding |
-| `max` | `zen-max` | top tier (needs credits) |
-| `code` | `zen-code` | coding-specialised |
-| `agent`| `zen-agent` | agentic |
-
-```bash
-hanzo use claude-code --model high      # or auto / fast / max / glm-5.2 …
-hanzo models                            # full live catalog for your key
-```
 
 ### Supported coding tools
 
@@ -95,14 +95,14 @@ hanzo models                            # full live catalog for your key
 ### The whole ecosystem
 
 ```bash
-hanzo install              # interactive checklist (core tools pre-checked)
-hanzo install dev mcp      # CLI agent + MCP server (npm)
-hanzo install list         # everything available
+hanzo-helper install              # interactive checklist (core tools pre-checked)
+hanzo-helper install dev mcp      # CLI agent + MCP server (npm)
+hanzo-helper install list         # everything available
 ```
 
 | Part | Kind | |
 | --- | --- | --- |
-| `dev` | npm | `@hanzo/dev` — CLI coding agent (`code`) |
+| `dev` | npm | `@hanzo/dev` — CLI coding agent |
 | `mcp` | npm | `@hanzo/mcp` — MCP server (tools, browser, cloud) |
 | `node` | guide | local inference node (bundles the engine) |
 | `desktop` | guide | desktop app + the Enso browser |
@@ -114,7 +114,7 @@ hanzo install list         # everything available
 ## How it works
 
 ```
- hanzo login
+ hanzo-helper login
      │
      ├── device login ─────────────▶ hanzo.id  (RFC 8628; proxies to iam.hanzo.ai)
      │     POST /oauth/device           → user_code + verification_uri
@@ -127,8 +127,8 @@ hanzo install list         # everything available
                                      ~/.codex/config.toml
                                             │
  your coding tool ──────────────────▶ api.hanzo.ai
-     OpenAI  /v1/chat/completions          (one key, every model)
-     Anthropic /v1/messages
+     /v1/chat/completions                  (one key, every model)
+     /v1/messages
 ```
 
 ### Self-hosted / white-label
@@ -140,6 +140,9 @@ Point the CLI at a different deployment with environment variables:
 | `HANZO_IAM_URL` | `https://hanzo.id` | Identity / device login |
 | `HANZO_API_URL` | `https://api.hanzo.ai` | Cloud API (keys, inference) |
 | `HANZO_CLIENT_ID` | `hanzo-app` | OAuth client id (e.g. `lux-app`) |
+
+The same build ships as `@luxfi/helper` (`lux-helper`), `@zooai/helper`
+(`zoo-helper`) and `@zenlm/helper` (`zen-helper`) with that brand's defaults.
 
 ## Configuration
 

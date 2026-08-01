@@ -1,11 +1,11 @@
 {
   "name": "@hanzo/helper",
-  "version": "1.0.7",
-  "description": "Hanzo CLI helper for API access, cloud services, MCP, and plugins",
+  "version": "1.0.8",
+  "description": "Sign in to Hanzo and point Claude Code, Codex and other coding tools at Hanzo Cloud",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "hanzo": "dist/cli.js"
+    "hanzo-helper": "dist/cli.js"
   },
   "exports": {
     ".": {

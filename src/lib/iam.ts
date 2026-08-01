@@ -119,7 +119,7 @@ export async function pollForToken(
       case 'access_denied':
         throw new DeviceAuthError('Login was denied.');
       case 'expired_token':
-        throw new DeviceAuthError('Login code expired. Please run `hanzo login` again.');
+        throw new DeviceAuthError('Login code expired. Please run `hanzo-helper login` again.');
       case undefined:
         throw new DeviceAuthError(`Login failed (${res.status} ${res.statusText})`);
       default:
@@ -127,7 +127,7 @@ export async function pollForToken(
     }
   }
 
-  throw new DeviceAuthError('Login timed out. Please run `hanzo login` again.');
+  throw new DeviceAuthError('Login timed out. Please run `hanzo-helper login` again.');
 }
 
 /**

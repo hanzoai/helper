@@ -1,10 +1,10 @@
 {
   "name": "@zooai/helper",
-  "version": "1.0.6",
-  "description": "Zoo CLI helper — sign in to Zoo and use its AI models in Claude Code, Codex, and more",
+  "version": "1.0.7",
+  "description": "Zoo CLI helper \u2014 sign in to Zoo and use its AI models in Claude Code, Codex, and more",
   "type": "module",
   "bin": {
-    "zoo": "bin/zoo.js"
+    "zoo-helper": "bin/zoo.js"
   },
   "files": [
     "bin",
@@ -28,6 +28,6 @@
   },
   "homepage": "https://zoo.ngo",
   "dependencies": {
-    "@hanzo/helper": "^1.0.6"
+    "@hanzo/helper": "^1.0.8"
   }
 }

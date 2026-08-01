@@ -28,7 +28,7 @@ export const doctorCmd = new Command('doctor')
     checks.push({
       name: 'Session',
       pass: Boolean(apiKey),
-      detail: apiKey ? `signed in${user ? ` as ${user.name}` : ''}` : 'run `hanzo login`',
+      detail: apiKey ? `signed in${user ? ` as ${user.name}` : ''}` : 'run `hanzo-helper login`',
     });
 
     const configured = TARGETS.filter((t) => t.status().configured).map((t) => t.displayName);
