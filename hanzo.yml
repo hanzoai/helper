@@ -1,0 +1,10 @@
+# TypeScript library published to npm from a tag — no image.
+# Gate: install against the committed lockfile, then the type check and the real
+# tsup build. Either one going red is the package failing to be publishable.
+test:
+  - name: typecheck-and-build
+    run: |
+      set -euo pipefail
+      pnpm install --frozen-lockfile
+      pnpm typecheck
+      pnpm build
