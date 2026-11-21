@@ -1,5 +1,7 @@
 # @hanzo/helper
 
+[![Open in Hanzo](https://hanzo.app/badges/open-in-hanzo.svg)](https://hanzo.app/dev/open?repo=github.com/hanzoai/helper&ref=main&action=open) [![Edit with Hanzo](https://hanzo.app/badges/edit-with-hanzo.svg)](https://hanzo.app/dev/open?repo=github.com/hanzoai/helper&ref=main&action=edit) [![Deploy with Hanzo](https://hanzo.app/badges/deploy-with-hanzo.svg)](https://hanzo.app/dev/open?repo=github.com/hanzoai/helper&ref=main&action=deploy)
+
 Points a coding tool at [Hanzo Cloud](https://hanzo.ai) in one command: browser device
 login, an API key minted for you, and the tool's config written for you.
 
